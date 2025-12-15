@@ -10,6 +10,9 @@ export class MovieMini {
 
 	}
 
+	public get id(): number {
+		return this.movie.id;
+	}
 	public get posterUrl(): string {
 		if (this.movie.poster_path) {
 			return `https://image.tmdb.org/t/p/w200${this.movie.poster_path}`;

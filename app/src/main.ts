@@ -1,4 +1,4 @@
-import Aurelia, { ConsoleSink, LoggerConfiguration, LogLevel } from 'aurelia';
+import Aurelia, { ConsoleSink, LoggerConfiguration, LogLevel, Registration } from 'aurelia';
 import { RouterConfiguration } from '@aurelia/router';
 import { MyApp } from './my-app';
 import { TrendingMovies } from './pages/trending-movies/TrendingMovies';
@@ -8,8 +8,13 @@ import * as SouchyAu from 'souchy.au';
 import 'souchy.au/styles.css';
 import { MovieMini } from './components/movie-mini/MovieMini';
 import { MovieList } from './components/movie-list/MovieList';
+import { HomePage } from './pages/home-page/HomePage';
+import { MoviePage } from './pages/movie-page/movie-page';
+import { MissingPage } from './pages/missing-page';
+import { AboutPage } from './pages/about-page';
+import { WelcomePage } from './pages/welcome-page';
 
-export const tmdb = new TMDB(import.meta.env.VITE_TMDB_ACCESS_TOKEN);
+const tmdb = new TMDB(import.meta.env.VITE_TMDB_ACCESS_TOKEN);
 
 const au = new Aurelia();
 // let i18n: I18N | null = null;
@@ -26,6 +31,8 @@ if (import.meta.env.VITE_NODE_ENV !== 'production') {
 
 // Components
 au.register(SouchyAu);
+au.register(Registration.instance(TMDB, tmdb));
+au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage);
 au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini);
 
 

@@ -1,9 +1,9 @@
 import { MovieResultItem, PaginatedResponse, TMDB, TMDBError } from '@lorenzopant/tmdb';
 import { resolve, ILogger } from 'aurelia';
-import { tmdb } from 'src/main';
 
 export class TrendingMovies {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('TrendingMovies');
+	private readonly tmdb = resolve(TMDB);
 
 	private searchingPromise: Promise<any> | null = null;
 	// private movies: PaginatedResponse<MovieResultItem> | null = null;
@@ -22,10 +22,10 @@ export class TrendingMovies {
 	async searchMovies() {
 		try {
 			// this.movies = await tmdb.search.movies({ query: 'Fight Club' });
-			this.nowPlaying = await tmdb.movie_lists.now_playing();
-			this.topRated = await tmdb.movie_lists.top_rated();
-			this.popular = await tmdb.movie_lists.popular();
-			this.upcoming = await tmdb.movie_lists.upcoming();
+			this.nowPlaying = await this.tmdb.movie_lists.now_playing();
+			this.topRated = await this.tmdb.movie_lists.top_rated();
+			this.popular = await this.tmdb.movie_lists.popular();
+			this.upcoming = await this.tmdb.movie_lists.upcoming();
 
 			this.logger.debug('Now Playing Movies:', this.nowPlaying);
 			this.logger.debug('Top Rated Movies:', this.topRated);

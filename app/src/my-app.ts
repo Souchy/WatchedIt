@@ -1,19 +1,20 @@
 import { route } from '@aurelia/router';
+import { HomePage } from './pages/home-page/HomePage';
+import { AboutPage } from './pages/about-page';
+import { MoviePage } from './pages/movie-page/movie-page';
+import { MissingPage } from './pages/missing-page';
 
 @route({
   routes: [
-    {
-      path: ['', 'welcome'],
-      component: import('./pages/welcome-page'),
-      title: 'Welcome',
-    },
+    HomePage,
     {
       path: 'about',
-      component: import('./pages/about-page'),
+      component: AboutPage,
       title: 'About',
     },
+    MoviePage
   ],
-  fallback: import('./pages/missing-page'),
+  // fallback: MissingPage,
 })
 export class MyApp {
 }
