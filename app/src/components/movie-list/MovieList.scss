@@ -1,0 +1,14 @@
+/* Grid container for the movie minis */
+.movie-list {
+	display: grid;
+	grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
+	gap: var(--gap);
+	margin: 0;
+	padding: 0;
+	list-style: none;
+
+	// If you render <movie-mini> directly as children of .movie-list:
+	>movie-mini {
+		display: block; // each element becomes a grid cell
+	}
+}

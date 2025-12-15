@@ -1,0 +1,32 @@
+<template>
+
+  <article>
+    <a href="">
+      <figure>
+        <img src.bind="posterUrl" title.bind="title" />
+        <figcaption class="info-flip">
+          <time class="release-date">${releaseDate}</time>
+          <p class="overview">${overview}</p>
+        </figcaption>
+      </figure>
+      <section>
+        <header class="title">${title}</header>
+        <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->
+      </section>
+    </a>
+
+    <!-- Meta and actions that should not be inside the main link -->
+    <section class="movie-meta" aria-hidden="false">
+      <!-- <span class="rating" role="img" aria-label.bind="`Rating ${voteAverage.toFixed(1)} out of 10`">
+          ⭐ ${voteAverage.toFixed(1)}
+        </span> -->
+
+      <!-- Placeholder for corner menu / actions (watchlist, share...). Keep outside the <a>. -->
+      <button class="movie-actions" type="button" aria-haspopup="menu" aria-label.bind="`Open actions for ${title}`">
+        ⋯
+      </button>
+    </section>
+	
+  </article>
+
+</template>

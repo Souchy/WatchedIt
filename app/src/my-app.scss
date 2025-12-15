@@ -1,0 +1,36 @@
+
+
+:root {
+  --card-bg: #fff;
+  --card-radius: 8px;
+  --card-shadow: 0 6px 18px rgba(10,10,20,0.06);
+  --gap: 16px;
+  --card-min-width: 180px;
+  --text-color: #111;
+  --muted-color: #6b6b79;
+  --overlay-gradient: linear-gradient(180deg, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.85) 100%);
+  --transition-fast: 160ms;
+  --poster-aspect-ratio: 2 / 3;
+  --fade-height: 5.2rem; /* height of the fade mask at the bottom */
+  --fade-color: rgba(0,0,0,0.95); /* color used for the bottom fade (matches overlay darkness) */
+}
+
+// nav {
+//   background: #eee;
+//   display: flex;
+// }
+
+// a {
+//   padding: 10px;
+//   text-decoration: none;
+//   color: black;
+
+//   &:hover {
+//     background-color: darkgray;
+//   }
+// }
+
+// .active {
+//   background-color: lightgray;
+// }
+

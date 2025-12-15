@@ -1,0 +1,47 @@
+import Aurelia, { ConsoleSink, LoggerConfiguration, LogLevel } from 'aurelia';
+import { RouterConfiguration } from '@aurelia/router';
+import { MyApp } from './my-app';
+import { TrendingMovies } from './pages/trending-movies/TrendingMovies';
+import { RelatedMovies } from './pages/related-movies/RelatedMovies';
+import { TMDB } from '@lorenzopant/tmdb';
+import * as SouchyAu from 'souchy.au';
+import 'souchy.au/styles.css';
+import { MovieMini } from './components/movie-mini/MovieMini';
+import { MovieList } from './components/movie-list/MovieList';
+
+export const tmdb = new TMDB(import.meta.env.VITE_TMDB_ACCESS_TOKEN);
+
+const au = new Aurelia();
+// let i18n: I18N | null = null;
+
+// Logger for development
+if (import.meta.env.VITE_NODE_ENV !== 'production') {
+  let logger = LoggerConfiguration.create({
+		level: LogLevel.debug,
+		colorOptions: 'colors',
+    sinks: [ConsoleSink]
+	});
+	au.register(logger);
+}
+
+// Components
+au.register(SouchyAu);
+au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini);
+
+
+// Router
+au.register(RouterConfiguration.customize({
+  useNavigationModel: true,
+  useUrlFragmentHash: false,
+  activeClass: "toggled",
+  // buildTitle(tr: Transition) {
+  //   // Use the I18N to translate the titles using the keys from data.i18n.
+  //   i18n ??= au.container.get(I18N);
+  //   // const root = tr.routeTree.root;
+  //   const child = tr.routeTree.root.children[0];
+  //   return `${i18n.tr(child.data.i18n as string)}`;
+  // },
+}));
+
+
+await au.app(MyApp).start();

@@ -1,0 +1,254 @@
+// movie-mini {
+// 	display: block;
+
+// 	.info-flip {
+// 		display: none;
+// 	}
+
+// 	&:hover {
+// 		.info-flip {
+// 			display: block;
+// 		}
+// 	}
+// }
+
+// Nested SCSS for a custom element <movie-mini>
+// Assumes HTML structure inside/around the element similar to:
+// <ul class="movie-list">
+//   <movie-mini>
+//     <article class="movie-card"> ... </article>
+//   </movie-mini>
+// </ul>
+//
+// If movie-mini uses Shadow DOM, put these styles inside the component's stylesheet instead
+// or expose CSS custom properties / parts.
+
+/* Root custom element styling and nested rules */
+movie-mini {
+	display: block; // ensure it behaves like a block/grid item
+
+	// If you prefer semantics & screen reader listcount when not using <li>,
+	// ensure the parent has role="list" and movie-mini has role="listitem".
+	// Example: <ul class="movie-list" role="list"> <movie-mini role="listitem">...</movie-mini> </ul>
+
+	article {
+		background: var(--card-bg);
+		border-radius: var(--card-radius);
+		box-shadow: var(--card-shadow);
+		overflow: hidden;
+		display: flex;
+		flex-direction: column;
+		height: 100%;
+		color: var(--text-color);
+
+		a {
+			display: block;
+			color: inherit;
+			text-decoration: none;
+			outline: none;
+
+			figure {
+				position: relative;
+				margin: 0;
+				width: 100%;
+				aspect-ratio: 2 / 3;
+				overflow: hidden;
+				// background: #e9e9ef;
+
+				img {
+					width: 100%;
+					height: 100%;
+					display: block;
+					object-fit: cover;
+					object-position: center;
+					user-select: none;
+					transition: transform calc(var(--transition-fast) * 1.2) ease;
+				}
+
+				.info-flip {
+					position: absolute;
+					inset: 0;
+					display: flex;
+					flex-direction: column;
+					justify-content: flex-end; // changed
+					padding: 0.75rem;
+					color: #2b1f1f;
+					background: var(--overlay-gradient);
+					opacity: 0;
+					transform: translateY(16px);
+					transition: opacity var(--transition-fast) ease, transform var(--transition-fast) ease;
+					pointer-events: none;
+					will-change: opacity, transform;
+
+					.release-date {
+						font-size: 0.85rem;
+						opacity: 0.95;
+						margin-bottom: 0.35rem;
+						// flex: 1 1 auto;
+					}
+
+					.overview {
+						margin: 0;
+						font-size: 0.9rem;
+						line-height: 1.25;
+						color: #fff;
+						display: -webkit-box;
+						// -webkit-line-clamp: 3;
+						-webkit-box-orient: vertical;
+
+						// changed
+						// flex: 0.5 1 auto;
+						// text-overflow: ellipsis;
+						overflow-y: auto;
+						word-break: keep-all;
+						line-break: strict;
+
+						/* Justify text for a clean block appearance */
+						// text-align: justify;
+						// text-justify: inter-word;
+						padding-right: 0.25rem;
+
+
+						/* Hide scrollbar for Firefox */
+						// scrollbar-width: none;
+						/* none | auto | thin */
+						/* Legacy IE */
+						// -ms-overflow-style: none;
+						// padding-bottom: calc(var(--fade-height) + 0.25rem);
+					}
+
+					/* WebKit/Blink: hide scrollbar visually */
+		// 			.overview::-webkit-scrollbar {
+		// 				width: 0;
+		// 				height: 0;
+		// 				display: none;
+		// 			}
+
+		// 			/* Fade mask: visually indicate more content at the bottom.
+        //    It's positioned inside the overlay and doesn't block pointer events. */
+		// 			.info-flip::after {
+		// 				content: "";
+		// 				position: absolute;
+		// 				left: 0;
+		// 				right: 0;
+		// 				bottom: 0;
+		// 				height: var(--fade-height);
+		// 				pointer-events: none;
+		// 				background: linear-gradient(0deg, var(--fade-color), rgba(253, 0, 0, 0));
+		// 			}
+				}
+
+			}
+
+			section {
+				.title {
+					margin: 0.6rem 0 0.4rem;
+					font-size: 1rem;
+					line-height: 1.15;
+					// padding: 0;
+					color: var(--text-color);
+					display: -webkit-box;
+					-webkit-line-clamp: 2;
+					-webkit-box-orient: vertical;
+					overflow: hidden;
+					text-overflow: ellipsis;
+				}
+
+				.rating {
+					color: var(--muted-color);
+					font-size: 0.95rem;
+					white-space: nowrap;
+				}
+			}
+		}
+
+		a:hover,
+		a:focus-visible,
+		article:focus-within {
+			.info-flip {
+				opacity: 1;
+				transform: none;
+				pointer-events: auto;
+			}
+
+			img {
+				transform: scale(1.03);
+			}
+		}
+
+		// // subtle scale for polish
+		// a:hover & img,
+		// a:focus-visible & img {
+		// 	transform: scale(1.03);
+		// }
+
+		// // show overlay when link hovered/focused or card receives focus-within
+		// a:hover & .info-flip,
+		// a:focus-visible & .info-flip,
+		// article:focus-within & .info-flip {
+		// 	opacity: 1;
+		// 	transform: none;
+		// 	pointer-events: auto;
+		// }
+
+		.movie-meta {
+			display: flex;
+			align-items: center;
+			justify-content: space-between;
+			gap: 8px;
+			padding: 0.5rem 0.75rem 0.9rem;
+			margin-top: auto;
+
+			.movie-actions {
+				background: transparent;
+				border: none;
+				padding: 6px;
+				border-radius: 6px;
+				color: var(--muted-color);
+				cursor: pointer;
+				font-size: 1.05rem;
+				line-height: 1;
+			}
+		}
+
+	}
+
+
+	// focus styles
+	a:focus-visible,
+	.movie-actions:focus-visible {
+		outline: 3px solid Highlight;
+		outline-offset: 3px;
+		border-radius: 6px;
+	}
+
+	// responsive adjustments (nested)
+	@media (max-width: 900px) {
+
+		// slightly smaller cards at narrower widths
+		// To change column sizing at different breakpoints, you can also override .movie-list grid-template-columns
+		.title {
+			font-size: 0.98rem;
+		}
+	}
+
+	@media (max-width: 520px) {
+		.title {
+			font-size: 0.96rem;
+			-webkit-line-clamp: 2;
+		}
+
+		.info-flip .overview {
+			-webkit-line-clamp: 2;
+		}
+	}
+
+	@media (prefers-reduced-motion: reduce) {
+
+		img,
+		.info-flip {
+			transition: none;
+			transform: none;
+		}
+	}
+}
