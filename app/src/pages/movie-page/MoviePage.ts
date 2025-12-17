@@ -3,11 +3,11 @@ import { ILogger, resolve } from "aurelia";
 import { IRouteViewModel, Params, route, RouteNode } from '@aurelia/router';
 
 
-// @route({
-// 	id: 'movie',
-// 	path: ['movie/:id'],
-// 	title: 'Movie',
-// })
+@route({
+	id: 'movie',
+	path: ['movie/:id'],
+	title: 'Movie',
+})
 export class MoviePage implements IRouteViewModel {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MoviePage');
 	private readonly tmdb = resolve(TMDB);

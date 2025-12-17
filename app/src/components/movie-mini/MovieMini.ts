@@ -1,7 +1,7 @@
 import { IRouteContext, route } from "@aurelia/router";
 import { MovieResultItem } from "@lorenzopant/tmdb";
 import { bindable, ILogger, resolve } from "aurelia";
-import { MoviePage } from "src/pages/movie-page/movie-page";
+import { MoviePage } from "src/pages/movie-page/MoviePage";
 
 
 // @route({

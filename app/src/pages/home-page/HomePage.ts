@@ -1,16 +1,16 @@
 import { route } from "@aurelia/router";
 import { ILogger, resolve } from "aurelia";
-import { MoviePage } from "../movie-page/movie-page";
+import { MoviePage } from "../movie-page/MoviePage";
 
 
-// @route({
-// 	id: 'home',
-// 	path: ['', 'home'],
-// 	title: 'Home',
-// 	routes: [
-// 		MoviePage
-// 	],
-// })
+@route({
+	id: 'home',
+	path: ['', 'home'],
+	title: 'Home',
+	// routes: [
+	// 	MoviePage
+	// ],
+})
 // @route({
 // 	routes: [
 // 		MoviePage
