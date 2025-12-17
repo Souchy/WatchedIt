@@ -2,7 +2,7 @@ import { IRouteContext, route } from "@aurelia/router";
 import { MovieItem, TMDB } from "@leandrowkz/tmdb";
 import { bindable, ILogger, resolve } from "aurelia";
 import { GenresMap } from "src/core/Genres";
-import { WatchState } from "src/core/WatchState";
+import { AvailableButtonsPerWatchState, ResetButtonMap, WatchState, WatchStateButton } from "src/core/WatchState";
 import { MoviePage } from "src/pages/movie-page/MoviePage";
 
 
@@ -19,10 +19,14 @@ export class MovieMini {
 
 	@bindable public movie: MovieItem;
 
-	private _watchState: WatchState | null = null;
+	private _watchState: WatchState = WatchState.Unlisted;
 
 	bound() {
-
+		// if (this._watchState === null) {
+		let state = localStorage.getItem(`movie_${this.movie.id}_watchState`);
+		state ??= WatchState[WatchState.Unlisted];
+		this._watchState = WatchState[state];
+		// }
 	}
 
 	public get id(): number {
@@ -52,16 +56,12 @@ export class MovieMini {
 	}
 
 	public get watchState(): WatchState {
-		if (this._watchState === null) {
-			const state = localStorage.getItem(`movie_${this.movie.id}_watchState`) ?? WatchState[WatchState.Unlisted];
-			this._watchState = WatchState[state];
-		}
 		return this._watchState;
 	}
 	public set watchState(value: WatchState) {
 		this.logger.debug(`Watch state changed to: ${value} for movie ID: ${this.movie.id}`);
 		this._watchState = value;
-		if(value === WatchState.Unlisted) {
+		if (value === WatchState.Unlisted) {
 			localStorage.removeItem(`movie_${this.movie.id}_watchState`);
 			return;
 		}
@@ -70,6 +70,13 @@ export class MovieMini {
 
 	public get genres(): string {
 		return this.movie.genre_ids.map(id => this.genresMap.movies[id]).join(', ');
+	}
+
+	public get availableWatchStateButtons(): WatchStateButton[] {
+		return AvailableButtonsPerWatchState[this.watchState];
+	}
+	public get resetWatchStateButton(): WatchStateButton | undefined {
+		return ResetButtonMap.get(this.watchState);
 	}
 
 }
