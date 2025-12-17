@@ -22,25 +22,21 @@ const au = new Aurelia();
 // Logger for development
 if (import.meta.env.VITE_NODE_ENV !== 'production') {
   let logger = LoggerConfiguration.create({
-		level: LogLevel.debug,
-		colorOptions: 'colors',
+    level: LogLevel.debug,
+    colorOptions: 'colors',
     sinks: [ConsoleSink]
-	});
-	au.register(logger);
+  });
+  au.register(logger);
 }
-
-// Components
-au.register(SouchyAu);
-au.register(Registration.instance(TMDB, tmdb));
-au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage);
-au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini);
 
 
 // Router
+// au.register(RouterConfiguration.customize({}));
 au.register(RouterConfiguration.customize({
   useNavigationModel: true,
   useUrlFragmentHash: false,
-  activeClass: "toggled",
+  // activeClass: "toggled",
+  historyStrategy: 'push',     // Browser history
   // buildTitle(tr: Transition) {
   //   // Use the I18N to translate the titles using the keys from data.i18n.
   //   i18n ??= au.container.get(I18N);
@@ -48,7 +44,14 @@ au.register(RouterConfiguration.customize({
   //   const child = tr.routeTree.root.children[0];
   //   return `${i18n.tr(child.data.i18n as string)}`;
   // },
+  basePath: '/',
 }));
+
+// Components
+au.register(SouchyAu);
+au.register(Registration.instance(TMDB, tmdb));
+au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage);
+au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini);
 
 
 await au.app(MyApp).start();

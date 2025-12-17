@@ -1,31 +1,24 @@
-<template>
+<!-- <template> -->
 
-  <article>
-    <a load="movie/${id}" aria-label.bind="`View details for ${title}`">
-      <figure>
-        <img src.bind="posterUrl" title.bind="title" />
-        <figcaption class="info-flip">
-          <time class="release-date">${releaseDate}</time>
-          <p class="overview">${overview}</p>
-        </figcaption>
-      </figure>
-      <section>
-        <header class="title">${title}</header>
-        <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->
-      </section>
-    </a>
+<article>
+  <a load="route: movie; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
+    <figure>
+      <img src.bind="posterUrl" title.bind="title" />
+      <figcaption class="info-flip">
+        <time class="release-date">${releaseDate}</time>
+        <p class="overview">${overview}</p>
+      </figcaption>
+    </figure>
+    <section>
+      <header class="title">${title}</header>
+      <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->
+    </section>
+  </a>
 
-      <!-- Placeholder for corner menu / actions (watchlist, share...). Keep outside the <a>. -->
-      <button class="movie-actions" type="button" aria-haspopup="menu" aria-label.bind="`Open actions for ${title}`">
-        ⋯
-      </button>
-    <!-- Meta and actions that should not be inside the main link -->
-    <!-- <section class="movie-meta" aria-hidden="false"> -->
-      <!-- <span class="rating" role="img" aria-label.bind="`Rating ${voteAverage.toFixed(1)} out of 10`">
-          ⭐ ${voteAverage.toFixed(1)}
-        </span> -->
-    <!-- </section> -->
-	
-  </article>
+  <!-- Placeholder for corner menu / actions (watchlist, share...). Keep outside the <a>. -->
+  <button class="movie-actions" type="button" aria-haspopup="menu" aria-label.bind="`Open actions for ${title}`">
+    ⋯
+  </button>
+</article>
 
-</template>
+<!-- </template> -->

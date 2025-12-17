@@ -1,9 +1,18 @@
+import { IRouteContext, route } from "@aurelia/router";
 import { MovieResultItem } from "@lorenzopant/tmdb";
 import { bindable, ILogger, resolve } from "aurelia";
+import { MoviePage } from "src/pages/movie-page/movie-page";
 
 
+// @route({
+// 	routes: [
+// 		MoviePage
+// 	],
+// })
 export class MovieMini {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MovieMini');
+	private readonly parentCtx: IRouteContext = resolve(IRouteContext).parent;
+
 	@bindable public movie: MovieResultItem;
 
 	bound() {

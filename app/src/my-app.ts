@@ -6,13 +6,35 @@ import { MissingPage } from './pages/missing-page';
 
 @route({
   routes: [
-    HomePage,
+    // HomePage,
+    // {
+    //   path: 'about',
+    //   component: AboutPage,
+    //   title: 'About',
+    // },
+    // MoviePage
+
+    {
+      path: ['', 'home'],
+      id: 'home', title: 'Home',
+      viewport: 'default',
+      component: import('./pages/home-page/HomePage'),
+      // routes: [
+      //   MoviePage
+      // ]
+    },
     {
       path: 'about',
-      component: AboutPage,
-      title: 'About',
+      id: 'about', title: 'About',
+      viewport: 'default',
+      component: import('./pages/about-page'),
     },
-    MoviePage
+    {
+      path: 'movie/:id?',
+      id: 'movie', title: 'Movie',
+      viewport: 'default',
+      component: import('./pages/movie-page/movie-page'),
+    },
   ],
   // fallback: MissingPage,
 })
