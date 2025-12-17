@@ -80,12 +80,16 @@ movie-mini {
 					pointer-events: none;
 					will-change: opacity, transform;
 
+					:first-child {
+						margin-top: 4rem;
+					}
+
+					.genres,
 					.release-date {
 						color: #d8d8d8;
 						font-size: 0.85rem;
 						opacity: 0.95;
 						margin-bottom: 0.35rem;
-						margin-top: 5rem;
 						// flex: 1 1 auto;
 					}
 

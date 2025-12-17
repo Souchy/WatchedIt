@@ -1,6 +1,7 @@
 import { IRouteContext, route } from "@aurelia/router";
 import { MovieItem, TMDB } from "@leandrowkz/tmdb";
 import { bindable, ILogger, resolve } from "aurelia";
+import { GenresMap } from "src/core/Genres";
 import { WatchState } from "src/core/WatchState";
 import { MoviePage } from "src/pages/movie-page/MoviePage";
 
@@ -14,6 +15,7 @@ export class MovieMini {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MovieMini');
 	private readonly parentCtx: IRouteContext = resolve(IRouteContext).parent;
 	private readonly tmdb = resolve(TMDB);
+	private readonly genresMap = resolve(GenresMap);
 
 	@bindable public movie: MovieItem;
 
@@ -66,5 +68,8 @@ export class MovieMini {
 		localStorage.setItem(`movie_${this.movie.id}_watchState`, WatchState[value]);
 	}
 
+	public get genres(): string {
+		return this.movie.genre_ids.map(id => this.genresMap.movies[id]).join(', ');
+	}
 
 }

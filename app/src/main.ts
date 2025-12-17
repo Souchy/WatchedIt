@@ -13,8 +13,24 @@ import { MissingPage } from './pages/missing-page';
 import { AboutPage } from './pages/about-page';
 import { WelcomePage } from './pages/welcome-page';
 import { TMDB } from '@leandrowkz/tmdb';
+import { GenresMap } from './core/Genres';
 
 const tmdb = new TMDB({ apiKey: import.meta.env.VITE_TMDB_API_KEY });
+
+const genresMap = new GenresMap();
+const localGenresMap = localStorage.getItem('tmdb_genres');
+if(localGenresMap) {
+  const parsed = JSON.parse(localGenresMap) as GenresMap;
+  genresMap.movies = parsed.movies;
+  genresMap.tv = parsed.tv;
+} else {
+  const movieGenres = await tmdb.genres.movie();
+  const tvGenres = await tmdb.genres.tv();
+  movieGenres.genres.forEach(g => genresMap.movies[g.id] = g.name);
+  tvGenres.genres.forEach(g => genresMap.tv[g.id] = g.name);
+  localStorage.setItem('tmdb_genres', JSON.stringify(genresMap));
+}
+
 
 const au = new Aurelia();
 // let i18n: I18N | null = null;
@@ -50,6 +66,7 @@ au.register(RouterConfiguration.customize({
 // Components
 au.register(SouchyAu);
 au.register(Registration.instance(TMDB, tmdb));
+au.register(Registration.instance(GenresMap, genresMap));
 au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage);
 au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini);
 
