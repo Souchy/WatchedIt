@@ -9,6 +9,7 @@
   "license": "UNLICENSED",
   "dependencies": {
     "@aurelia/router": "latest",
+    "@flaticon/flaticon-uicons": "^3.3.1",
     "@lorenzopant/tmdb": "^1.0.4",
     "aurelia": "latest",
     "souchy.au": "^0.1.20"

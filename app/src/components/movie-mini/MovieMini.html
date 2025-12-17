@@ -1,6 +1,7 @@
 <!-- <template> -->
 
 <article>
+  
   <a load="route: movie; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
     <figure>
       <img src.bind="posterUrl" title.bind="title" />
@@ -12,13 +13,86 @@
     <section>
       <header class="title">${title}</header>
       <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->
+      <!-- Set unlisted -->
+      <button if.bind="watchState !== WatchState.Unlisted" switch.bind="watchState" aria-label="Current watch state: ${watchState}. Set as unlisted." click.trigger="watchState = WatchState.Unlisted">
+        <case value.bind="WatchState.PlanToWatch">
+          <i class="fi fi-sr-bookmark"></i>
+        </case>
+        <case value.bind="WatchState.Watching">
+          <i class="fi fi-sr-play-circle"></i>
+        </case>
+        <case value.bind="WatchState.OnHold">
+          <i class="fi fi-sr-pause-circle"></i>
+        </case>
+        <case value.bind="WatchState.Dropped">
+          <i class="fi fi-sr-circle-trash"></i>
+        </case>
+        <case value.bind="WatchState.Completed">
+          <i class="fi fi-sr-check-circle"></i>
+        </case>
+      </button>
     </section>
   </a>
 
   <!-- Placeholder for corner menu / actions (watchlist, share...). Keep outside the <a>. -->
-  <button class="movie-actions" type="button" aria-haspopup="menu" aria-label.bind="`Open actions for ${title}`">
-    ⋯
-  </button>
+  <section class="corner-menu">
+
+    <button class="movie-actions" type="button" aria-haspopup="menu" aria-label="Edit">
+      <!-- <i class="fi fi-sc-pencil"></i> -->
+      <i class="fi fi-rs-pen-circle"></i>
+    </button>
+
+    <!-- If completed, nothing -->
+    <template if.bind="watchState === WatchState.Completed">
+    </template>
+
+    <!-- If unlisted, set as watching, completed or plan to watch -->
+    <template if.bind="watchState === WatchState.Unlisted">
+      <button aria-label="Set as watching" click.trigger="watchState = WatchState.Watching">
+        <i class="fi fi-rr-play-circle"></i>
+      </button>
+      <button aria-label="Set as completed" click.trigger="watchState = WatchState.Completed">
+        <i class="fi fi-rr-check-circle"></i>
+      </button>
+      <button aria-label="Set as plan to watch" click.trigger="watchState = WatchState.PlanToWatch">
+        <i class="fi fi-rr-bookmark"></i>
+      </button>
+    </template>
+
+    <!-- If watching, set as completed, on hold or dropped -->
+    <template if.bind="watchState === WatchState.Watching">
+      <button aria-label="Set as completed" click.trigger="watchState = WatchState.Completed">
+        <i class="fi fi-rr-check-circle"></i>
+      </button>
+      <button aria-label="Set as on hold" click.trigger="watchState = WatchState.OnHold">
+        <i class="fi fi-rr-pause-circle"></i>
+      </button>
+      <button aria-label="Set as dropped" click.trigger="watchState = WatchState.Dropped">
+        <i class="fi fi-rr-circle-trash"></i>
+      </button>
+    </template>
+
+    <!-- If plan to watch, set as watching or completed -->
+    <template if.bind="watchState === WatchState.PlanToWatch">
+      <button aria-label="Set as watching" click.trigger="watchState = WatchState.Watching">
+        <i class="fi fi-rr-play-circle"></i>
+      </button>
+      <button aria-label="Set as completed" click.trigger="watchState = WatchState.Completed">
+        <i class="fi fi-rr-check-circle"></i>
+      </button>
+    </template>
+
+    <!-- If on hold or dropped, set as watching or completed -->
+    <template if.bind="watchState === WatchState.OnHold || watchState === WatchState.Dropped">
+      <button aria-label="Set as watching" click.trigger="watchState = WatchState.Watching">
+        <i class="fi fi-rr-play-circle"></i>
+      </button>
+      <button aria-label="Set as completed" click.trigger="watchState = WatchState.Completed">
+        <i class="fi fi-rr-check-circle"></i>
+      </button>
+    </template>
+
+  </section>
 </article>
 
 <!-- </template> -->
