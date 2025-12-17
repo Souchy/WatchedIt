@@ -1,5 +1,5 @@
 import { IRouteContext, route } from "@aurelia/router";
-import { MovieResultItem } from "@lorenzopant/tmdb";
+import { MovieItem, TMDB } from "@leandrowkz/tmdb";
 import { bindable, ILogger, resolve } from "aurelia";
 import { WatchState } from "src/core/WatchState";
 import { MoviePage } from "src/pages/movie-page/MoviePage";
@@ -13,8 +13,9 @@ import { MoviePage } from "src/pages/movie-page/MoviePage";
 export class MovieMini {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MovieMini');
 	private readonly parentCtx: IRouteContext = resolve(IRouteContext).parent;
+	private readonly tmdb = resolve(TMDB);
 
-	@bindable public movie: MovieResultItem;
+	@bindable public movie: MovieItem;
 
 	private _watchState: WatchState | null = null;
 

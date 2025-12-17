@@ -3,7 +3,6 @@ import { RouterConfiguration } from '@aurelia/router';
 import { MyApp } from './my-app';
 import { TrendingMovies } from './pages/trending-movies/TrendingMovies';
 import { RelatedMovies } from './pages/related-movies/RelatedMovies';
-import { TMDB } from '@lorenzopant/tmdb';
 import * as SouchyAu from 'souchy.au';
 import 'souchy.au/styles.css';
 import { MovieMini } from './components/movie-mini/MovieMini';
@@ -13,8 +12,9 @@ import { MoviePage } from './pages/movie-page/MoviePage';
 import { MissingPage } from './pages/missing-page';
 import { AboutPage } from './pages/about-page';
 import { WelcomePage } from './pages/welcome-page';
+import { TMDB } from '@leandrowkz/tmdb';
 
-const tmdb = new TMDB(import.meta.env.VITE_TMDB_ACCESS_TOKEN);
+const tmdb = new TMDB({ apiKey: import.meta.env.VITE_TMDB_API_KEY });
 
 const au = new Aurelia();
 // let i18n: I18N | null = null;

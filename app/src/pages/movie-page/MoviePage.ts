@@ -1,6 +1,6 @@
-import { MovieDetails, TMDB } from "@lorenzopant/tmdb";
 import { ILogger, resolve } from "aurelia";
 import { IRouteViewModel, Params, route, RouteNode } from '@aurelia/router';
+import { Movie, TMDB } from "@leandrowkz/tmdb";
 
 
 @route({
@@ -13,7 +13,7 @@ export class MoviePage implements IRouteViewModel {
 	private readonly tmdb = resolve(TMDB);
 
 	private movieId: number;
-	private movie: MovieDetails;
+	private movie: Movie;
 
 
 	canLoad(params: Params) {
@@ -23,9 +23,7 @@ export class MoviePage implements IRouteViewModel {
 	}
 	async loading?(params: Params, next: RouteNode, current: RouteNode | null): Promise<void> {
 		this.movieId = parseInt(params.id ?? '');
-		this.movie = await this.tmdb.movies.details({
-			movie_id: this.movieId,
-		});
+		this.movie = await this.tmdb.movies.details(this.movieId);
 		this.logger.debug('Loaded movie details:', this.movie);
 	}
 
