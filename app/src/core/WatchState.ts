@@ -21,29 +21,37 @@ export class WatchStateButton {
 	public ariaLabel: string;
 }
 
+export const FiStylePrefix = 'fi fi-tr';
+export const FiStylePrefixSolid = 'fi fi-sr';
+// export const BiStylePrefix = 'bi bi';
+// export const BiStylePrefixSolid = 'bi bi';
+
 export const SetPlanToWatchButton: WatchStateButton = {
 	setWatchState: WatchState.PlanToWatch,
-	iconClass: 'fi fi-rr-bookmark',
+	// iconClass: `${FiStylePrefix}-bookmark`,
+	iconClass: `bi bi-bookmark`,
 	ariaLabel: 'Mark as Plan to Watch',
 };
 export const SetWatchingButton: WatchStateButton = {
 	setWatchState: WatchState.Watching,
-	iconClass: 'fi fi-rr-play-circle',
+	iconClass: `${FiStylePrefix}-play-circle`,
 	ariaLabel: 'Mark as Watching',
 };
 export const SetCompletedButton: WatchStateButton = {
 	setWatchState: WatchState.Completed,
-	iconClass: 'fi fi-rr-check-circle',
+	// iconClass: `${FiStylePrefix}-check-circle`,
+	iconClass: `fi fi-ts-check-circle`,
 	ariaLabel: 'Mark as Completed',
 };
 export const SetOnHoldButton: WatchStateButton = {
 	setWatchState: WatchState.OnHold,
-	iconClass: 'fi fi-rr-pause-circle',
+	iconClass: `${FiStylePrefix}-pause-circle`,
 	ariaLabel: 'Mark as On Hold',
 };
 export const SetDroppedButton: WatchStateButton = {
 	setWatchState: WatchState.Dropped,
-	iconClass: 'fi fi-rr-circle-trash',
+	iconClass: `${FiStylePrefix}-circle-trash`,
+	// iconClass: `bi bi-trash`,
 	ariaLabel: 'Mark as Dropped',
 };
 export const WatchStateButtonMap: Map<WatchState, WatchStateButton> = new Map([
@@ -64,27 +72,28 @@ export const AvailableButtonsPerWatchState: Record<WatchState, WatchStateButton[
 
 export const ResetPlanToWatchButton: WatchStateButton = {
 	setWatchState: WatchState.Unlisted,
-	iconClass: 'fi fi-sr-bookmark',
+	// iconClass: `${FiStylePrefixSolid}-bookmark`,
+	iconClass: `bi bi-bookmark-check-fill`,
 	ariaLabel: 'Currently marked as Plan to watch. Mark as Unlisted',
 };
 export const ResetWatchingButton: WatchStateButton = {
 	setWatchState: WatchState.Unlisted,
-	iconClass: 'fi fi-sr-play-circle',
+	iconClass: `${FiStylePrefixSolid}-play-circle`,
 	ariaLabel: 'Currently marked as Watching. Mark as Unlisted',
 };
 export const ResetCompletedButton: WatchStateButton = {
 	setWatchState: WatchState.Unlisted,
-	iconClass: 'fi fi-sr-check-circle',
+	iconClass: `${FiStylePrefixSolid}-check-circle`,
 	ariaLabel: 'Currently marked as Completed. Mark as Unlisted',
 };
 export const ResetOnHoldButton: WatchStateButton = {
 	setWatchState: WatchState.Unlisted,
-	iconClass: 'fi fi-sr-pause-circle',
+	iconClass: `${FiStylePrefixSolid}-pause-circle`,
 	ariaLabel: 'Currently marked as On Hold. Mark as Unlisted',
 };
 export const ResetDroppedButton: WatchStateButton = {
 	setWatchState: WatchState.Unlisted,
-	iconClass: 'fi fi-sr-circle-trash',
+	iconClass: `${FiStylePrefixSolid}-circle-trash`,
 	ariaLabel: 'Currently marked as Dropped. Mark as Unlisted',
 };
 export const ResetButtonMap: Map<WatchState, WatchStateButton> = new Map([

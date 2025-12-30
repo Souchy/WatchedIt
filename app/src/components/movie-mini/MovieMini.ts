@@ -2,7 +2,7 @@ import { IRouteContext, route } from "@aurelia/router";
 import { MovieItem, TMDB } from "@leandrowkz/tmdb";
 import { bindable, ILogger, resolve } from "aurelia";
 import { GenresMap } from "src/core/Genres";
-import { AvailableButtonsPerWatchState, ResetButtonMap, WatchState, WatchStateButton } from "src/core/WatchState";
+import { AvailableButtonsPerWatchState, ResetButtonMap, SetPlanToWatchButton, WatchState, WatchStateButton } from "src/core/WatchState";
 import { MoviePage } from "src/pages/movie-page/MoviePage";
 
 
@@ -19,7 +19,7 @@ export class MovieMini {
 
 	@bindable public movie: MovieItem;
 
-	private _watchState: WatchState = WatchState.Unlisted;
+	private _watchState: WatchState | null = null;
 
 	bound() {
 		// if (this._watchState === null) {
@@ -56,6 +56,10 @@ export class MovieMini {
 	}
 
 	public get watchState(): WatchState {
+		if (this._watchState === null) {
+			let state = localStorage.getItem(`movie_${this.movie.id}_watchState`) ?? WatchState[WatchState.Unlisted];
+			this._watchState = WatchState[state];
+		}
 		return this._watchState;
 	}
 	public set watchState(value: WatchState) {
@@ -77,6 +81,21 @@ export class MovieMini {
 	}
 	public get resetWatchStateButton(): WatchStateButton | undefined {
 		return ResetButtonMap.get(this.watchState);
+	}
+
+	private clickWatchStateButton(btn: WatchStateButton) {
+		this.watchState = btn.setWatchState;
+	}
+
+	private get state1(): WatchStateButton {
+		return SetPlanToWatchButton;
+	}
+
+	private get bootstrapclass(): string {
+		return 'bi bi-pencil-square';
+	}
+	private get ficlass(): string {
+		return 'fi fi-rr-plus-circle';
 	}
 
 }

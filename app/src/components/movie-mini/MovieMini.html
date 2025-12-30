@@ -2,6 +2,7 @@
 
 <article>
 
+  <!-- Main panel -->
   <a load="route: movie; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
     <figure>
       <img src.bind="posterUrl" title.bind="title" />
@@ -15,7 +16,8 @@
       <header class="title">${title}</header>
       <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->
       <!-- Set unlisted -->
-      <button if.bind="resetWatchStateButton" aria-label.bind="resetWatchStateButton.ariaLabel" click.trigger="clickWatchStateButton(resetWatchStateButton)">
+      <button if.bind="resetWatchStateButton" aria-label.bind="resetWatchStateButton.ariaLabel" click.trigger="clickWatchStateButton(resetWatchStateButton)"
+        aria-label.bind="resetWatchStateButton.ariaLabel" title.bind="resetWatchStateButton.ariaLabel">
         <i class.bind="resetWatchStateButton.iconClass" aria-hidden="true"></i>
       </button>
     </section>
@@ -24,14 +26,15 @@
   <!-- Placeholder for corner menu / actions (watchlist, share...). Keep outside the <a>. -->
   <section class="corner-menu">
 
-    <button class="movie-actions" type="button" aria-haspopup="menu" aria-label="Edit">
+    <button class="movie-actions icon-button" type="button" aria-haspopup="menu" aria-label="Edit">
+      ...
       <!-- <i class="fi fi-sc-pencil"></i> -->
-      <i class="fi fi-rs-pen-circle"></i>
+      <!-- <i class="fi fi-ts-pen-circle"></i> -->
     </button>
 
-    <button repeat.for="btn of availableWatchStateButtons" click.trigger="clickWatchStateButton(btn)" aria-label.bind="btn.ariaLabel">
+
+    <button class="icon-button" repeat.for="btn of availableWatchStateButtons" click.trigger="clickWatchStateButton(btn)" aria-label.bind="btn.ariaLabel" title.bind="btn.ariaLabel">
       <i class.bind="btn.iconClass"></i>
-      <span class="visually-hidden">${btn.ariaLabel}</span>
     </button>
 
     <!-- If completed, nothing -->
