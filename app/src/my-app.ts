@@ -3,6 +3,11 @@ import { HomePage } from './pages/home-page/HomePage';
 import { AboutPage } from './pages/about-page';
 import { MoviePage } from './pages/movie-page/MoviePage';
 import { MissingPage } from './pages/missing-page';
+import { IStore } from '@aurelia/state';
+import { ILogger, inject, resolve } from 'aurelia';
+import { AppState } from './core/state/AppState';
+import { AppAction } from './core/state/AppHandler';
+import { SupabaseService } from './core/services/SupabaseService';
 
 @route({
   routes: [
@@ -37,5 +42,31 @@ import { MissingPage } from './pages/missing-page';
   ],
   fallback: MissingPage,
 })
+@inject(IStore, SupabaseService)
 export class MyApp {
+  private logger = resolve(ILogger).scopeTo('MyApp');
+
+  public constructor(private readonly store: IStore<AppState, AppAction>, private supabase: SupabaseService) {
+  }
+
+  async activated() {
+    // TODO: Sign in silently if possible
+    this.logger.debug('MyApp activated', this.store, this.supabase);
+    // await this.supabase.supabaseClient.auth.signInWithOAuth
+
+    // let res = await this.supabase.supabaseClient.auth.signInWithOAuth({
+    //   provider: 'azure',
+    //   options: {
+    //     redirectTo: window.location.origin,
+    //   }
+    // });
+    // this.logger.debug('Supabase OAuth Sign-In Result:', res);
+    
+    // await this.supabase.fetchMediaUserDataMap();
+  }
+
+  public dispose() {
+    this.supabase.dispose();
+  }
+
 }

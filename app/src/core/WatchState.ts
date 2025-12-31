@@ -8,12 +8,12 @@
  * Plan to Watch -> unlisted, watching, completed
  */
 export enum WatchState {
-	Unlisted,
-	PlanToWatch,
-	Watching,
-	Completed,
-	OnHold,
-	Dropped,
+	Unlisted = 0,
+	PlanToWatch = 1,
+	Watching = 2,
+	Completed = 3,
+	OnHold = 4,
+	Dropped = 5,
 }
 export class WatchStateButton {
 	public setWatchState: WatchState;

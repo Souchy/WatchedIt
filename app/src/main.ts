@@ -1,4 +1,4 @@
-import Aurelia, { ConsoleSink, LoggerConfiguration, LogLevel, Registration } from 'aurelia';
+import Aurelia, { AppTask, ConsoleSink, IContainer, LoggerConfiguration, LogLevel, Registration } from 'aurelia';
 import { RouterConfiguration } from '@aurelia/router';
 import { MyApp } from './my-app';
 import { TrendingMovies } from './pages/trending-movies/TrendingMovies';
@@ -14,12 +14,18 @@ import { AboutPage } from './pages/about-page';
 import { WelcomePage } from './pages/welcome-page';
 import { TMDB } from '@leandrowkz/tmdb';
 import { GenresMap } from './core/Genres';
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
+import { StateDefaultConfiguration, IStore, IStoreRegistry } from '@aurelia/state';
+import { initialState } from './core/state/AppState';
+import { appStateHandler } from './core/state/AppHandler';
+import { SupabaseService } from './core/services/SupabaseService';
 
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY)
 const tmdb = new TMDB({ apiKey: import.meta.env.VITE_TMDB_API_KEY });
 
 const genresMap = new GenresMap();
 const localGenresMap = localStorage.getItem('tmdb_genres');
-if(localGenresMap) {
+if (localGenresMap) {
   const parsed = JSON.parse(localGenresMap) as GenresMap;
   genresMap.movies = parsed.movies;
   genresMap.tv = parsed.tv;
@@ -63,10 +69,14 @@ au.register(RouterConfiguration.customize({
   basePath: '/',
 }));
 
+// Services
+au.register(StateDefaultConfiguration.init(initialState, appStateHandler));
+au.register(Registration.instance(TMDB, tmdb));
+au.register(Registration.instance(SupabaseClient, supabase));
+au.register(Registration.singleton(SupabaseService, SupabaseService));
+au.register(Registration.instance(GenresMap, genresMap));
 // Components
 au.register(SouchyAu);
-au.register(Registration.instance(TMDB, tmdb));
-au.register(Registration.instance(GenresMap, genresMap));
 au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage);
 au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini);
 
