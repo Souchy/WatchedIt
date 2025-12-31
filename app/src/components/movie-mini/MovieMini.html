@@ -12,81 +12,30 @@
         <p class="overview">${overview}</p>
       </figcaption>
     </figure>
-    <section>
-      <header class="title">${title}</header>
-      <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->
-      <!-- Set unlisted -->
-      <button if.bind="resetWatchStateButton" aria-label.bind="resetWatchStateButton.ariaLabel" click.trigger="clickWatchStateButton(resetWatchStateButton)"
-        aria-label.bind="resetWatchStateButton.ariaLabel" title.bind="resetWatchStateButton.ariaLabel">
-        <i class.bind="resetWatchStateButton.iconClass" aria-hidden="true"></i>
-      </button>
-    </section>
   </a>
+  
+  <section class="title-bar">
+    <a load="route: movie; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
+      <header class="title">${title}</header>
+    </a>
+    <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->
+    <!-- Set unlisted -->
+    <button class="reset-button" if.bind="resetWatchStateButton" aria-label.bind="resetWatchStateButton.ariaLabel" click.trigger="clickWatchStateButton(resetWatchStateButton)" aria-label.bind="resetWatchStateButton.ariaLabel" title.bind="resetWatchStateButton.ariaLabel">
+      <i class.bind="resetWatchStateButton.iconClass" aria-hidden="true"></i>
+    </button>
+  </section>
 
   <!-- Placeholder for corner menu / actions (watchlist, share...). Keep outside the <a>. -->
   <section class="corner-menu">
-
-    <button class="movie-actions icon-button" type="button" aria-haspopup="menu" aria-label="Edit">
+    <button type="button" aria-haspopup="menu" aria-label="Edit">
       ...
       <!-- <i class="fi fi-sc-pencil"></i> -->
       <!-- <i class="fi fi-ts-pen-circle"></i> -->
     </button>
 
-
-    <button class="icon-button" repeat.for="btn of availableWatchStateButtons" click.trigger="clickWatchStateButton(btn)" aria-label.bind="btn.ariaLabel" title.bind="btn.ariaLabel">
+    <button repeat.for="btn of availableWatchStateButtons" click.trigger="clickWatchStateButton(btn)" aria-label.bind="btn.ariaLabel" title.bind="btn.ariaLabel">
       <i class.bind="btn.iconClass"></i>
     </button>
-
-    <!-- If completed, nothing -->
-    <!-- <template if.bind="watchState === WatchState.Completed">
-    </template> -->
-
-    <!-- If unlisted, set as watching, completed or plan to watch -->
-    <!-- <template if.bind="watchState === WatchState.Unlisted">
-      <button aria-label="Set as watching" click.trigger="watchState = WatchState.Watching">
-        <i class="fi fi-rr-play-circle"></i>
-      </button>
-      <button aria-label="Set as completed" click.trigger="watchState = WatchState.Completed">
-        <i class="fi fi-rr-check-circle"></i>
-      </button>
-      <button aria-label="Set as plan to watch" click.trigger="watchState = WatchState.PlanToWatch">
-        <i class="fi fi-rr-bookmark"></i>
-      </button>
-    </template> -->
-
-    <!-- If watching, set as completed, on hold or dropped -->
-    <!-- <template if.bind="watchState === WatchState.Watching">
-      <button aria-label="Set as completed" click.trigger="watchState = WatchState.Completed">
-        <i class="fi fi-rr-check-circle"></i>
-      </button>
-      <button aria-label="Set as on hold" click.trigger="watchState = WatchState.OnHold">
-        <i class="fi fi-rr-pause-circle"></i>
-      </button>
-      <button aria-label="Set as dropped" click.trigger="watchState = WatchState.Dropped">
-        <i class="fi fi-rr-circle-trash"></i>
-      </button>
-    </template> -->
-
-    <!-- If plan to watch, set as watching or completed -->
-    <!-- <template if.bind="watchState === WatchState.PlanToWatch">
-      <button aria-label="Set as watching" click.trigger="watchState = WatchState.Watching">
-        <i class="fi fi-rr-play-circle"></i>
-      </button>
-      <button aria-label="Set as completed" click.trigger="watchState = WatchState.Completed">
-        <i class="fi fi-rr-check-circle"></i>
-      </button>
-    </template> -->
-
-    <!-- If on hold or dropped, set as watching or completed -->
-    <!-- <template if.bind="watchState === WatchState.OnHold || watchState === WatchState.Dropped">
-      <button aria-label="Set as watching" click.trigger="watchState = WatchState.Watching">
-        <i class="fi fi-rr-play-circle"></i>
-      </button>
-      <button aria-label="Set as completed" click.trigger="watchState = WatchState.Completed">
-        <i class="fi fi-rr-check-circle"></i>
-      </button>
-    </template> -->
-
   </section>
 </article>
 
