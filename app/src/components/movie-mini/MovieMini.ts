@@ -22,11 +22,11 @@ export class MovieMini {
 	private _watchState: WatchState | null = null;
 
 	bound() {
-		// if (this._watchState === null) {
-		let state = localStorage.getItem(`movie_${this.movie.id}_watchState`);
-		state ??= WatchState[WatchState.Unlisted];
-		this._watchState = WatchState[state];
-		// }
+		if (this._watchState === null) {
+			let state = localStorage.getItem(`movie_${this.movie.id}_watchState`);
+			state ??= WatchState[WatchState.Unlisted];
+			this._watchState = WatchState[state];
+		}
 	}
 
 	public get id(): number {
@@ -56,10 +56,13 @@ export class MovieMini {
 	}
 
 	public get watchState(): WatchState {
-		if (this._watchState === null) {
-			let state = localStorage.getItem(`movie_${this.movie.id}_watchState`) ?? WatchState[WatchState.Unlisted];
-			this._watchState = WatchState[state];
-		}
+		// if (this._watchState === null) {
+		// 	let state = localStorage.getItem(`movie_${this.movie.id}_watchState`);
+		// 	this.logger.error(`Loading watch state for movie ID: ${this.movie.id} from localStorage ${state}`);
+		// 	state ??= WatchState[WatchState.Unlisted];
+		// 	// this._watchState = WatchState[state];
+		// 	return WatchState[state];
+		// }
 		return this._watchState;
 	}
 	public set watchState(value: WatchState) {
@@ -77,6 +80,7 @@ export class MovieMini {
 	}
 
 	public get availableWatchStateButtons(): WatchStateButton[] {
+		// this.logger.warn(`Loading watch state for movie ID: ${this.movie.id} : ${this._watchState}`);
 		return AvailableButtonsPerWatchState[this.watchState];
 	}
 	public get resetWatchStateButton(): WatchStateButton | undefined {
