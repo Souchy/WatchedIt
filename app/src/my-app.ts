@@ -8,6 +8,7 @@ import { ILogger, inject, resolve } from 'aurelia';
 import { AppState } from './core/state/AppState';
 import { AppAction } from './core/state/AppHandler';
 import { SupabaseService } from './core/services/SupabaseService';
+import { CallbackPage } from './pages/callback/CallbackPage';
 
 @route({
   routes: [
@@ -17,7 +18,8 @@ import { SupabaseService } from './core/services/SupabaseService';
       component: AboutPage,
       title: 'About',
     },
-    MoviePage
+    MoviePage,
+    CallbackPage
     // {
     //   path: ['', 'home'],
     //   id: 'home', title: 'Home',
@@ -49,7 +51,7 @@ export class MyApp {
   public constructor(private readonly store: IStore<AppState, AppAction>, private supabase: SupabaseService) {
   }
 
-  async activated() {
+  async attached() {
     // TODO: Sign in silently if possible
     this.logger.debug('MyApp activated', this.store, this.supabase);
     // await this.supabase.supabaseClient.auth.signInWithOAuth

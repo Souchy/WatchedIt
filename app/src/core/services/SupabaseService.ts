@@ -25,21 +25,41 @@ export class SupabaseService {
 	}
 
 	public async signinWithAzure(): Promise<void> {
-		const redirect_uri = window.location.origin; // "https://ymgzzslmtldzmaqwkbqx.supabase.co/auth/v1/callback"; // + '/auth/callback'; // http://localhost:9000
-		this.logger.debug('Sign In with Azure button clicked, redirect_uri:', redirect_uri);
-		// window.location.href = 'http://localhost:3000/auth/azure';
+		let redirect_uri = window.location.origin + "/callback"; // 
+		// let redirect_uri = "https://ymgzzslmtldzmaqwkbqx.supabase.co/auth/v1/callback"; // http://localhost:9000 // + '/auth/callback';
+		this.logger.debug('Sign In with Azure OAuth button clicked, redirect_uri:', redirect_uri);
 
+		const usePopup = false;
+		
 		let res = await this.supabaseClient.auth.signInWithOAuth({
 			provider: 'azure',
 			options: {
 				redirectTo: redirect_uri,
-				skipBrowserRedirect: true
+				skipBrowserRedirect: usePopup
 			}
 		});
 		this.logger.debug('Supabase OAuth Sign-In Result:', res);
+		
+		if (usePopup)
+			window.open(res.data.url, '_blank', 'width=500,height=600');
 
-		// redirectInPopup(data.url)
-		window.open(res.data.url, '_blank', 'width=500,height=600');
+
+		// let b = await this.supabaseClient.auth.exchangeCodeForSession("code");
+		// this.logger.debug('Supabase OAuth Exchange Code Result:', b);
+		// this.supabaseClient.auth.initialize();
+		// this.supabaseClient.auth.startAutoRefresh();
+		// this.supabaseClient.auth.refreshSession();
+		// // this.supabaseClient.auth.oauth.approveAuthorization("")
+		// // this.supabaseClient.auth.mfa.challenge({
+		// // 	channel: 'sms',
+		// // 	factorId: 'default',
+		// // 	webauthn: {
+		// // 		rpId: window.location.hostname,
+		// // 		rpOrigins: []
+		// // 	}
+		// // });
+		// this.supabaseClient.auth.admin.createUser({});
+		// this.supabaseClient.auth.getUser();
 	}
 
 	public async fetchMediaUserDataMap(): Promise<Record<number, MediaUserData> | null> {

@@ -20,9 +20,32 @@ import { initialState } from './core/state/AppState';
 import { appStateHandler } from './core/state/AppHandler';
 import { SupabaseService } from './core/services/SupabaseService';
 
-const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY)
+const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
+  auth: {
+    // debug: true,
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: true,
+    flowType: 'pkce',
+    storage: {
+      getItem: (key: string) => {
+        return localStorage.getItem(key);
+      },
+      setItem: (key: string, value: string) => {
+        localStorage.setItem(key, value);
+      },
+      removeItem: (key: string) => {
+        localStorage.removeItem(key);
+      }
+    }
+  },
+});
 const tmdb = new TMDB({ apiKey: import.meta.env.VITE_TMDB_API_KEY });
 
+// Test Supabase connection
+supabase.from('balloon-test').select('*').then(r => console.log('Supabase test query result:', r));
+
+// Fetch TMDB genres
 const genresMap = new GenresMap();
 const localGenresMap = localStorage.getItem('tmdb_genres');
 if (localGenresMap) {
