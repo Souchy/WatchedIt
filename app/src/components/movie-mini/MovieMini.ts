@@ -22,6 +22,7 @@ export class MovieMini {
 
 	@bindable public movie: MovieItem | Movie | null = null;
 	@bindable public tvshow: TVShowItem | TVShow | null = null;
+	@bindable public size: number = 200; // px width for poster
 
 	@fromState((state: AppState) => state.session)
 	public session: Session | null = null;

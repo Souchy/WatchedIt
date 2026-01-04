@@ -1,9 +1,9 @@
 /* Grid container for the movie minis */
 .movie-list {
 	display: grid;
-	grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
 	// display: flex;
 	// flex-wrap: wrap;
+	// grid-template-columns: repeat(auto-fill, minmax(var(--card-min-width), 1fr));
 
 	gap: var(--gap);
 	margin: 0;

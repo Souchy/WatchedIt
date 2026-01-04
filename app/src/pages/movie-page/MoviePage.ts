@@ -1,6 +1,6 @@
 import { ILogger, resolve } from "aurelia";
 import { IRouteViewModel, Params, route, RouteNode } from '@aurelia/router';
-import { Movie, TMDB } from "@leandrowkz/tmdb";
+import { Movie, MovieItem, TMDB, TMDBResponseList } from "@leandrowkz/tmdb";
 
 
 @route({
@@ -14,7 +14,7 @@ export class MoviePage implements IRouteViewModel {
 
 	private movieId: number;
 	private movie: Movie;
-
+	private similar: TMDBResponseList<MovieItem[]> | null = null;
 
 	canLoad(params: Params) {
 		this.movieId = parseInt(params.id ?? '');
@@ -25,6 +25,8 @@ export class MoviePage implements IRouteViewModel {
 		this.movieId = parseInt(params.id ?? '');
 		this.movie = await this.tmdb.movies.details(this.movieId);
 		this.logger.debug('Loaded movie details:', this.movie);
+		this.similar = await this.tmdb.movies.similar(this.movieId);
+		this.logger.debug('Loaded similar movies:', this.similar);
 	}
 
 	public get posterUrl(): string {

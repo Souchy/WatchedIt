@@ -1,6 +1,6 @@
 import { ILogger, resolve } from "aurelia";
 import { IRouteViewModel, Params, route, RouteNode } from '@aurelia/router';
-import { Movie, TMDB, TVShow } from "@leandrowkz/tmdb";
+import { Movie, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
 
 
 @route({
@@ -14,6 +14,7 @@ export class TVShowPage implements IRouteViewModel {
 
 	private tvshowId: number;
 	private tvshow: TVShow;
+	private similar: TMDBResponseList<TVShowItem[]> | null = null;
 
 
 	canLoad(params: Params) {
@@ -25,6 +26,22 @@ export class TVShowPage implements IRouteViewModel {
 		this.tvshowId = parseInt(params.id ?? '');
 		this.tvshow = await this.tmdb.tvShows.details(this.tvshowId);
 		this.logger.debug('Loaded TV show details:', this.tvshow);
+		await this.moreSimilar();
+	}
+
+	public async moreSimilar() {
+		if (!this.similar) {
+			this.similar = await this.tmdb.tvShows.similar(this.tvshowId);
+			this.logger.debug('Loaded similar TV shows:', this.similar);
+			return;
+		}
+		const nextPage = this.similar.page + 1;
+		const newSimilar = await this.tmdb.tvShows.similar(this.tvshowId, { page: nextPage });
+		this.similar.results.push(...newSimilar.results);
+		this.similar.page = newSimilar.page;
+		this.similar.total_pages = newSimilar.total_pages;
+		this.similar.total_results = newSimilar.total_results;
+		this.logger.debug('Loaded more similar TV shows, page', nextPage, ':', newSimilar);
 	}
 
 	public get posterUrl(): string {

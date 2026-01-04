@@ -1,12 +1,12 @@
-<ul class="movie-list">
+<ul class="movie-list" style.bind="`grid-template-columns: ${columnStyle}`">
   <li repeat.for="movie of movies?.results">
-    <movie-mini movie.bind="movie"></movie-mini>
+    <movie-mini movie.bind="movie" size.bind="size"></movie-mini>
   </li>
   <li repeat.for="show of shows?.results">
-    <movie-mini tvshow.bind="show"></movie-mini>
+    <movie-mini tvshow.bind="show" size.bind="size"></movie-mini>
   </li>
   <li repeat.for="item of medias">
-    <movie-mini if.bind="item.kind == 0" movie.bind="item.details"></movie-mini>
-    <movie-mini if.bind="item.kind == 1" tvshow.bind="item.details"></movie-mini>
+    <movie-mini if.bind="item.kind == 0" movie.bind="item.details" size.bind="size"></movie-mini>
+    <movie-mini if.bind="item.kind == 1" tvshow.bind="item.details" size.bind="size"></movie-mini>
   </li>
 </ul>

@@ -8,5 +8,9 @@ export class MovieList {
 	@bindable movies: TMDBResponseList<MovieItem[]> | null = null;
 	@bindable shows: TMDBResponseList<TVShowItem[]> | null = null;
 	@bindable medias: Array<MediaUserData & { details: Movie | TVShow }> | null = null;
+	@bindable size: number = 150; // px width for poster
 	
+	public get columnStyle() {
+		return `repeat(auto-fill, minmax(${this.size}px, 1fr))`;
+	}
 }
