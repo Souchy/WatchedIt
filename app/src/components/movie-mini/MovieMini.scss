@@ -6,15 +6,19 @@ movie-mini {
 	&:hover,
 	&:focus-within,
 	&:focus-visible {
+		text-shadow: 0px 0px 0px transparent; // forces reflow / layout rendering recalculation
+
 		.info-flip {
-			opacity: 1;
 			transform: none;
+			opacity: 1;
 			pointer-events: auto;
+			visibility: visible;
 		}
 
 		.corner-menu {
-			// display: flex;
 			opacity: 1;
+			pointer-events: auto;
+			visibility: visible;
 		}
 	}
 
@@ -55,16 +59,18 @@ movie-mini {
 
 				figcaption.info-flip {
 					position: absolute;
-					inset: 0;
 					display: flex;
+					opacity: 0;
+					visibility: hidden;
+					pointer-events: none;
+
+					inset: 0;
 					flex-direction: column;
 					// justify-content: flex-end; // changed
 					padding: 0.75rem;
 					background: var(--overlay-gradient);
-					opacity: 0;
 					transform: translateY(16px);
 					transition: opacity var(--transition-fast) ease, transform var(--transition-fast) ease;
-					pointer-events: none;
 					will-change: opacity, transform;
 					width: calc(100% - 1.5rem);
 					height: calc(100% - 1.5rem);
@@ -175,37 +181,39 @@ movie-mini {
 				color: rgb(223, 223, 223);
 			}
 
-			&:hover i {
-				text-shadow:
-					0 0 1px var(--glow-color),
-					0 0 1px var(--glow-color),
-					0 0 1px var(--glow-color),
-					0 0 2px var(--glow-color),
-					0 0 2px var(--glow-color),
-					0 0 2px var(--glow-color),
-					0 0 3px var(--glow-color),
-					// 0 0 5px var(--glow-color),
-					// 0 0 10px var(--glow-color),
-					// 0 0 20px var(--glow-color)
-					;
-			}
-
 			&:hover,
-			&:focus-visible {
+			&:focus-visible,
+			&:focus-within {
 				background-color: transparent;
+				text-shadow: 0px 0px 0px transparent; // forces reflow / layout rendering recalculation
 
 				// background-color: linear-gradient(180deg, rgba(1, 1, 1, 0.5) 0%, rgba(1, 1, 1, 0.85) 100%);
 				i {
 					// color: red;
+					text-shadow:
+						0 0 1px var(--glow-color),
+						0 0 1px var(--glow-color),
+						0 0 1px var(--glow-color),
+						0 0 2px var(--glow-color),
+						0 0 2px var(--glow-color),
+						0 0 2px var(--glow-color),
+						0 0 3px var(--glow-color),
+						// 0 0 5px var(--glow-color),
+						// 0 0 10px var(--glow-color),
+						// 0 0 20px var(--glow-color)
+					;
 				}
 			}
 		}
 
 		section.corner-menu {
-			opacity: 0;
 			// display: none;
 			display: flex;
 			position: absolute;
+			opacity: 0;
+			visibility: hidden;
+			pointer-events: none;
+
 			top: 8px;
 			left: 8px;
 			// margin: 0px 8px;

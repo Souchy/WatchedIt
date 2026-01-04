@@ -1,29 +1,37 @@
 auth-signin {
 
-	.dropdown-container {
+	>.dropdown-container {
 		height: 100%;
 		align-content: center;
 		cursor: pointer;
-	}
 
-	.dropdown-title {
-		position: relative;
-	}
+		>.dropdown-title {
+			position: relative;
 
-	.dropdown-choices {
-		display: none;
-		position: absolute;
-		right: 0px;
-		white-space: nowrap;
-	}
-
-	.dropdown-container:hover,
-	.dropdown-container.show {
-		.dropdown-title {
-			.dropdown-choices {
+			>.dropdown-choices {
+				// display: none;
 				display: flex;
+				opacity: 0;
+				visibility: hidden;
+				pointer-events: none;
+
+				position: absolute;
+				right: 0px;
+				white-space: nowrap;
 				flex-direction: column;
+
+				// will-change: opacity, visibility; // Hint
+				transition: opacity 0.3s ease, visibility 0.3s ease;
+				// transition: none;
 			}
 		}
+
+		&:hover>.dropdown-title>.dropdown-choices {
+			opacity: 1;
+			visibility: visible;
+			pointer-events: auto;
+		}
 	}
+
+
 }

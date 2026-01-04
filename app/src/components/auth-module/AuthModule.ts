@@ -25,16 +25,33 @@ export class AuthModule {
 		// this.store.unsubscribe(this);
 	}
 
+	public get userImage() {
+		return this.session?.user.user_metadata?.avatar_url ?? 'https://www.gravatar.com/avatar/00000000000000000000000000000000?d=mp&f=y';
+	}
+	public get userName() {
+		let username = this.session?.user.user_metadata?.preferred_username;
+		if (username) {
+			if (username.includes('@')) {
+				username = username.split('@')[0];
+			}
+			return username;
+		}
+		return this.session?.user.user_metadata?.full_name ?? this.session?.user.email;
+	}
+
 	public get isAuthenticated(): boolean {
 		return this.session !== null;
 	}
 
-	// State to track whether the dropdown is open
-	public menuOpen = false;
-
-	// Toggle visibility of the dropdown menu
-	toggleMenu(): void {
-		this.menuOpen = !this.menuOpen;
+	public clickSignout(): void {
+		this.logger.debug('Sign Out button clicked');
+		this.supabase.supabaseClient.auth.signOut().then(({ error }) => {
+			if (error) {
+				this.logger.error('Error during sign out:', error.message);
+			} else {
+				this.logger.debug('Sign out successful');
+			}
+		});
 	}
 
 }

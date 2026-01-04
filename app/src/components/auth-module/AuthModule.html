@@ -7,27 +7,31 @@
 <template else>
   <!-- <div class="profile-menu"> -->
 
-    <div class="profile-avatar" click.trigger="toggleMenu()">
-      <i class="fi fi-ts-circle-user"></i> Souchy
-      <!-- Profile -->
-      <!-- <img src="https://via.placeholder.com/40" alt="Profile Avatar" class="profile-avatar" click.trigger="toggleMenu()" /> -->
-    </div>
+  <div class="profile-avatar">
+    <!-- <i class="fi fi-ts-circle-user"></i>  -->
+    <img src.bind="userImage" alt="Profile Avatar" />
+    <!-- ${userName} -->
+    <!-- Profile -->
+  </div>
 
-    <!-- Dropdown Menu -->
-    <div class="profile-dropdown">
-      <!-- <h3>Souchy</h3> -->
-      <ul>
-        <li>
-          <a href="profile">Profile</a>
-        </li>
-        <li>
-          <a href="settings">Settings</a>
-        </li>
-        <li>
-          <button type="button" click.trigger="logout()">Sign out</button>
-        </li>
-      </ul>
-    </div>
+  <!-- Dropdown Menu -->
+  <div class="profile-dropdown">
+    <!-- <h4>
+      <img src.bind="userImage" alt="Profile Avatar" />
+      ${userName}
+    </h4> -->
+    <ul>
+      <li>
+        <a href="profile">Profile</a>
+      </li>
+      <li>
+        <a href="settings">Settings</a>
+      </li>
+      <li>
+        <button type="button" click.trigger="clickSignout()">Sign out</button>
+      </li>
+    </ul>
+  </div>
 
   <!-- </div> -->
 </template>

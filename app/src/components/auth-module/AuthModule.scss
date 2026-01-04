@@ -1,74 +1,94 @@
 auth-module {
 	// .profile-menu {
-		position: relative;
-		// height: 100%;
-		// align-content: center;
+	position: relative;
+	// height: 100%;
+	// align-content: center;
 
-		// Profile Avatar Styles
-		.profile-avatar {
-			cursor: pointer;
-			height: 100%;
-			align-content: center;
-			margin: 0px 8px;
+	// Profile Avatar Styles
+	.profile-avatar {
+		cursor: pointer;
+		height: 100%;
+		align-content: center;
+		margin: 0px 8px;
 
-			i {
-				font-size: x-large;
-			}
-
-			img {
-				border-radius: 50%;
-				width: 40px;
-				height: 40px;
-			}
+		i {
+			font-size: large;
 		}
 
-		.profile-avatar:hover+.profile-dropdown,
-		.profile-avatar+.profile-dropdown:hover {
-			display: block;
-		}
+	}
 
-		// Dropdown Menu Styles
+	img {
+		border-radius: 50%;
+		height: 50%;
+	}
+
+	&:hover {
+		text-shadow: 0px 0px 0px transparent; // forces reflow / layout rendering recalculation
 		.profile-dropdown {
-			display: none; // Hidden by default
-			position: absolute;
-			background-color: var(--surface);
-			color: var(--on-surface);
-			border-radius: 8px;
-			border: 1px solid var(--outline);
-			right: 0px;
-			padding: 8px 16px;
-			white-space: nowrap;
+			// display: block;
+			opacity: 1;
+			visibility: visible;
+			pointer-events: auto;
+		}
+	}
 
-			// Visibility toggling
-			&.open {
-				display: block;
-			}
+	// .profile-avatar:hover+.profile-dropdown,
+	// .profile-avatar+.profile-dropdown:hover {
+	// 	// display: block;
+	// 	opacity: 1;
+	// 	pointer-events: auto;
+	// }
 
-			// Menu Items (Links)
-			ul {
-				list-style: none;
-				padding: 0;
-				margin: 0;
+	// Dropdown Menu Styles
+	.profile-dropdown {
+		position: absolute;
+		// display: none; // Hidden by default
+		display: block;
+		opacity: 0;
+		pointer-events: none;
 
-				li {
-					// padding: 8px 0;
 
-					a {
-						display: block; // Make the anchor act like a block for clicking area
-						text-decoration: none; // Remove the underline
-						color: inherit; // Inherit the menu color (white)
-						padding: 8px 16px;
-						border-radius: 4px;
-						transition: background-color 0.3s ease;
-						white-space: nowrap;
+		background-color: var(--surface);
+		color: var(--on-surface);
+		border-radius: 8px;
+		border: 1px solid var(--outline);
+		right: 0px;
+		padding: 8px 16px;
+		white-space: nowrap;
 
-						&:hover {
-							background-color: #444; // Lighter background on hover
-						}
+		// text-align: right;
+		// min-width: 8rem;
+		// max-width: 160px;
+
+		// Menu Items (Links)
+		ul {
+			list-style: none;
+			padding: 0;
+			margin: 0;
+
+			li {
+				// padding: 8px 0;
+				button {
+					// width: 100%;
+				}
+
+				a {
+					display: block; // Make the anchor act like a block for clicking area
+					text-decoration: none; // Remove the underline
+					color: inherit; // Inherit the menu color (white)
+					padding: 8px 16px;
+					border-radius: 4px;
+					transition: background-color 0.3s ease;
+					white-space: nowrap;
+
+					&:hover {
+						background-color: #444; // Lighter background on hover
 					}
 				}
 			}
 		}
-
 	}
+
+}
+
 // }
