@@ -84,6 +84,8 @@ export class MovieMini {
 
 	//#region State properties
 	public get availableWatchStateButtons(): WatchStateButton[] {
+		if(!this.session)
+			return [];
 		return AvailableButtonsPerWatchState[this.watchState];
 	}
 	public get resetWatchStateButton(): WatchStateButton | null {
