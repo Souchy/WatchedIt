@@ -53,7 +53,7 @@ export class MyApp {
 
   async attached() {
     // TODO: Sign in silently if possible
-    this.logger.debug('MyApp activated', this.store, this.supabase);
+    this.logger.trace('MyApp activated', this.store, this.supabase);
     // await this.supabase.supabaseClient.auth.signInWithOAuth
 
     // let res = await this.supabase.supabaseClient.auth.signInWithOAuth({

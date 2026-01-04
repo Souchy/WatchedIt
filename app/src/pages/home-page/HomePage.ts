@@ -11,21 +11,13 @@ import { SupabaseService } from "src/core/services/SupabaseService";
 	id: 'home',
 	path: ['', 'home'],
 	title: 'Home',
-	// routes: [
-	// 	MoviePage
-	// ],
 })
-// @route({
-// 	routes: [
-// 		MoviePage
-// 	],
-// })
 @inject(IStore, SupabaseService)
 export class HomePage {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('HomePage');
 
 	public constructor(private readonly store: IStore<AppState, AppAction>, private supabase: SupabaseService) {
-		this.logger.debug('HomePage constructor', store, supabase);
+		// this.logger.debug('HomePage constructor', store, supabase);
 	}
 
 }

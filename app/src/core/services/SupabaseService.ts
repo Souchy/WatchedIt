@@ -1,4 +1,4 @@
-import { Provider, SupabaseClient } from "@supabase/supabase-js";
+import { AuthChangeEvent, Provider, Subscription, SupabaseClient } from "@supabase/supabase-js";
 import { ILogger, inject, resolve } from "aurelia";
 import { MediaUserData } from "../MediaUserData";
 import { IStore } from "@aurelia/state";
@@ -13,20 +13,29 @@ export class SupabaseService {
 	public supabaseClient: SupabaseClient = resolve(SupabaseClient);
 	private logger: ILogger = resolve(ILogger).scopeTo("SupabaseService");
 
-	private readonly authUnsubscribe;
+	private authUnsubscribe: Subscription | null = null;
 
 	public constructor(private readonly store: IStore<AppState, AppAction>) {
 		this.logger.debug('SupabaseService constructor', store, this.supabaseClient);
 		// Sync auth state changes to the store
-		this.authUnsubscribe = this.supabaseClient.auth.onAuthStateChange((event, session) => {
+		const { data } = this.supabaseClient.auth.onAuthStateChange((event: AuthChangeEvent, session) => {
 			this.logger.debug(`Supabase Auth State Changed: ${event}`, session);
+			const oldUserId: string | undefined = store.getState().session?.user.id;
 			this.store.dispatch(new UserChangedAction(session));
-			if (session) {
-				this.logger.debug(`Supabase Auth activated auth-refresh`);
+			if (session && event === 'SIGNED_IN' && oldUserId !== session.user.id) {
+				this.logger.debug(`Supabase Auth signed_in: activating auth-refresh`);
 				this.supabaseClient.auth.startAutoRefresh();
 				this.fetchMediaUserDataMap();
+			} 
+			else if (!session && event === 'SIGNED_OUT') {
+				// Handle sign-out if needed
+				this.logger.debug(`Supabase Auth signed_out, stopping auth-refresh, `);
+				this.supabaseClient.auth.stopAutoRefresh();
+				this.authUnsubscribe?.unsubscribe();
+				this.authUnsubscribe = null;
 			}
 		});
+		this.authUnsubscribe = data.subscription;
 	}
 
 	public async signinWith(provider: Provider): Promise<void> {
@@ -121,8 +130,15 @@ export class SupabaseService {
 		return Boolean(!error);
 	}
 
+	public detaching() {
+		this.logger.debug('SupabaseService detaching, unsubscribing from auth changes');
+		// this.authUnsubscribe?.unsubscribe();
+		// this.authUnsubscribe = null;
+	}
 	public dispose() {
-		this.authUnsubscribe.data.subscription.unsubscribe();
+		this.logger.debug('SupabaseService disposing, unsubscribing from auth changes');
+		// this.authUnsubscribe?.unsubscribe();
+		// this.authUnsubscribe = null;
 	}
 
 }

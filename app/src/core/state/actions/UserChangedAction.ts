@@ -13,8 +13,14 @@ export function UserChangedHandler(currentState: AppState, action: UserChangedAc
 	if (currentState.session === action.session) {
 		return currentState;
 	}
-	return {
-		...currentState,
-		session: action.session,
-	};
+	if (action.session) {
+		// Update state on sign-in
+		return {
+			...currentState,
+			session: action.session,
+		};
+	} else {
+		// Reset state on sign-out
+		return new AppState();
+	}
 }
