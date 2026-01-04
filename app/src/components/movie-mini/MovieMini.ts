@@ -8,7 +8,7 @@ import { SupabaseService } from "src/core/services/SupabaseService";
 import { AppState } from "src/core/state/AppState";
 import { AvailableButtonsPerWatchState, ResetButtonMap, SetPlanToWatchButton, WatchState, WatchStateButton } from "src/core/WatchState";
 import { MoviePage } from "src/pages/movie-page/MoviePage";
-
+import { TVShowPage } from "src/pages/tvshow-page/TVShowPage";
 
 export class MovieMini {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MovieMini');
@@ -16,18 +16,24 @@ export class MovieMini {
 	private readonly tmdb = resolve(TMDB);
 	private readonly genresMap = resolve(GenresMap);
 	private readonly supabase = resolve(SupabaseService);
+	private readonly movieRoute: typeof MoviePage = MoviePage;
+	private readonly tvshowRoute: typeof TVShowPage = TVShowPage;
 
-	@bindable public movie: MovieItem;
-	@bindable public tvshow: TVShow;
+	@bindable public movie: MovieItem | null = null;
+	@bindable public tvshow: TVShowItem | null = null;
 
 	@fromState((state: AppState) => state.mediaUserDataMap)
 	public dataMap!: Record<number, MediaUserData> | null;
 
 	bound() {
+		this.logger.trace('MovieMini bound with media:', this.media);
 	}
 
 	//region Getters
-	public get media(): MovieItem | TVShow {
+	public get route() {
+		return this.movie ? this.movieRoute : this.tvshowRoute;
+	}
+	public get media(): MovieItem | TVShowItem {
 		return this.movie || this.tvshow;
 	}
 	public get id(): number {
@@ -37,13 +43,13 @@ export class MovieMini {
 		return this.media.overview;
 	}
 	public get title(): string {
-		return this.movie.title || this.tvshow.name || 'N/A';
+		return this.movie?.title || this.tvshow?.name || 'N/A';
 	}
 	public get posterUrl(): string {
 		return this.media.poster_path ? `https://image.tmdb.org/t/p/w200${this.media.poster_path}` : 'N/A';
 	}
 	public get releaseDate(): string {
-		return this.movie.release_date || this.tvshow.first_air_date || 'N/A';
+		return this.movie?.release_date || this.tvshow?.first_air_date || 'N/A';
 	}
 	public get releaseYear(): string {
 		return (this.releaseDate && this.releaseDate.length >= 4)
@@ -87,15 +93,17 @@ export class MovieMini {
 	private clickWatchStateButton(btn: WatchStateButton) {
 		this.watchState = btn.setWatchState;
 	}
-	public incrementEpisodesCompleted(): void {
+	public async incrementEpisodesCompleted(): Promise<void> {
 		// const currentData = this.state.getMediaUserDataOrDefault(this.tvshow.id);
 		const currentData = this.dataMap[this.tvshow.id] || createDefaultMediaUserData();
 		let updatedData: Partial<MediaUserData> = {
 			completed_episodes: currentData.completed_episodes + 1,
 		};
 
-		if (updatedData.completed_episodes >= this.tvshow.number_of_episodes) {
-			updatedData.completed_episodes = this.tvshow.number_of_episodes;
+		const tvshowDetails = await this.tmdb.tvShows.details(this.tvshow.id);
+
+		if (updatedData.completed_episodes! >= tvshowDetails.number_of_episodes) {
+			updatedData.completed_episodes = tvshowDetails.number_of_episodes;
 			updatedData.state = WatchState.Completed;
 			updatedData.watch_completed_date = new Date().toISOString();
 		}

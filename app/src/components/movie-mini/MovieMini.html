@@ -3,7 +3,7 @@
 <article>
 
   <!-- Main panel -->
-  <a load="route: movie; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
+  <a load="route.bind: route; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
     <figure>
       <img src.bind="posterUrl" title.bind="title" />
       <figcaption class="info-flip">
@@ -15,7 +15,7 @@
   </a>
   
   <section class="title-bar">
-    <a load="route: movie; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
+    <a load="route.bind: route; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
       <header class="title">${title}</header>
     </a>
     <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->

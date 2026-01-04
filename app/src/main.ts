@@ -12,7 +12,7 @@ import { MoviePage } from './pages/movie-page/MoviePage';
 import { MissingPage } from './pages/missing-page';
 import { AboutPage } from './pages/about-page';
 import { WelcomePage } from './pages/welcome-page';
-import { TMDB } from '@leandrowkz/tmdb';
+import { TMDB, TVShowsAPI } from '@leandrowkz/tmdb';
 import { GenresMap } from './core/Genres';
 import { createClient, SupabaseClient } from '@supabase/supabase-js'
 import { StateDefaultConfiguration, IStore, IStoreRegistry } from '@aurelia/state';
@@ -22,6 +22,8 @@ import { SupabaseService } from './core/services/SupabaseService';
 import { AuthModule } from './components/auth-module/AuthModule';
 import { AuthSignin } from './components/auth-module/auth-signin/AuthSignin';
 import { Navbar } from './components/navbar/Navbar';
+import { CallbackPage } from './pages/callback/CallbackPage';
+import { TVShowPage } from './pages/tvshow-page/TVShowPage';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
   auth: {
@@ -44,9 +46,6 @@ const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env
   },
 });
 const tmdb = new TMDB({ apiKey: import.meta.env.VITE_TMDB_API_KEY });
-
-// Test Supabase connection
-supabase.from('balloon-test').select('*').then(r => console.log('Supabase test query result:', r));
 
 // Fetch TMDB genres
 const genresMap = new GenresMap();
@@ -103,7 +102,7 @@ au.register(Registration.singleton(SupabaseService, SupabaseService));
 au.register(Registration.instance(GenresMap, genresMap));
 // Components
 au.register(SouchyAu);
-au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage);
+au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage, CallbackPage, TVShowPage);
 au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar);
 
 

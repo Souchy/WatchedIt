@@ -1,0 +1,15 @@
+
+<header>
+	  <h1>${title}</h1>
+</header>
+<section class="movie-details">
+	<figure class="poster">
+		<img src.bind="posterUrl" alt.bind="`Poster for ${title}`" />
+	</figure>
+	<div class="details-info">
+		<p><strong>Release Date:</strong> ${releaseDate}</p>
+		<p><strong>Rating:</strong> ${tvshow.voteAverage.toFixed(1)} / 10</p>
+		<p><strong>Overview:</strong> ${tvshow.overview}</p>
+		<!-- Add more movie details as needed -->
+	</div>
+</section>
