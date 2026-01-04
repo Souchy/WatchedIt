@@ -1,14 +1,8 @@
 <div class="dropdown-container">
   <div class="dropdown-title">Sign in
     <div class="dropdown-choices">
-      <button click.trigger="signinWithAzure()">
-        <i class="fi fi-brands-microsoft"></i> Sign in with Microsoft
-      </button>
-      <button click.trigger="signinWithGithub()">
-        <i class="fi fi-brands-github"></i> Sign in with GitHub
-      </button>
-      <button click.trigger="signinWithGoogle()" disabled>
-        <i class="fi fi-brands-google"></i> Sign in with Google
+      <button repeat.for="provider of providers" click.trigger="supabase.signinWith(provider.name)" disabled.bind="provider.disabled">
+        <i class.bind="provider.iconClass"></i> Sign in with ${provider.displayName}
       </button>
     </div>
   </div>
