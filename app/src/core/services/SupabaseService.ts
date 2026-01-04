@@ -41,8 +41,9 @@ export class SupabaseService {
 			options: {
 				redirectTo: redirect_uri,
 				skipBrowserRedirect: usePopup,
-				scopes: 'email' // Needed for Supabase to get user email to create a user record
-				// scopes: 'email profile openid offline_access User.Read', // Add necessary scopes explicitly
+				// scopes: 'email' // Needed for Supabase to get user email to create a user record
+				scopes: 'email profile openid offline_access User.Read ProfilePhoto.Read.All', // Add necessary scopes explicitly
+				// scopes: 'email openid User.Read ProfilePhoto.Read.All', // Add necessary scopes explicitly
 			}
 		});
 		this.logger.debug('Supabase OAuth Sign-In Result:', res);
@@ -74,21 +75,22 @@ export class SupabaseService {
 		}
 		const mediaUserDataMap: Record<number, MediaUserData> = {};
 		for (const item of data) {
-			mediaUserDataMap[item.tmdb_id] = {
-				createdAt: item.created_at,
-				updatedAt: item.updated_at,
-				state: item.state,
-				completedEpisodes: item.completed_episodes,
-				rating: item.rating,
-				watchStartDate: item.watch_start_date,
-				watchCompletedDate: item.watch_completed_date,
-			} satisfies MediaUserData;
+			mediaUserDataMap[item.tmdb_id] = item satisfies MediaUserData;
+			// mediaUserDataMap[item.tmdb_id] = {
+			// 	created_at: item.created_at,
+			// 	updated_at: item.updated_at,
+			// 	state: item.state,
+			// 	completed_episodes: item.completed_episodes,
+			// 	rating: item.rating,
+			// 	watch_start_date: item.watch_start_date,
+			// 	watch_completed_date: item.watch_completed_date,
+			// } satisfies MediaUserData;
 		}
 		this.store.dispatch(new MediaUserDataMapChangedAction(mediaUserDataMap));
 		return mediaUserDataMap;
 	}
 
-	public async updateMediaUserData(mediaId: number, mediaUserData: MediaUserData): Promise<boolean> {
+	public async updateMediaUserData(mediaId: number, mediaUserData: Partial<MediaUserData>): Promise<boolean> {
 		// const sessionRes = await this.supabaseClient.auth.getSession();
 		let session = this.store.getState().session; // sessionRes?.data.session;
 		if (!session) {
@@ -99,6 +101,7 @@ export class SupabaseService {
 		// save optimistically to state
 		const previousData = this.store.getState().mediaUserDataMap[mediaId] || null;
 		this.store.dispatch(new MediaUserDataChangedAction(mediaId, mediaUserData));
+		const updatedData = this.store.getState().mediaUserDataMap[mediaId];
 
 		// update db
 		const { data, error } = await this.supabaseClient
@@ -106,7 +109,8 @@ export class SupabaseService {
 			.upsert({
 				user_id: session.user.id,
 				tmdb_id: mediaId,
-				...mediaUserData,
+				...updatedData,
+				// ...mediaUserData,
 			}, { onConflict: 'user_id,tmdb_id' });
 
 		// On error, rollback state change

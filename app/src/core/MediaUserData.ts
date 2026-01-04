@@ -1,11 +1,20 @@
 import { WatchState } from "./WatchState";
 
 export interface MediaUserData {
-	createdAt: string;
-	updatedAt: string;
+	created_at: string;
+	updated_at: string;
 	state: WatchState;
-	completedEpisodes: number;
+	completed_episodes: number;
 	rating?: number | null;
-	watchStartDate?: string | null;
-	watchCompletedDate?: string | null;
+	watch_start_date?: string | null;
+	watch_completed_date?: string | null;
+}
+
+export function createDefaultMediaUserData(): MediaUserData {
+	return {
+		created_at: new Date().toISOString(),
+		updated_at: new Date().toISOString(),
+		state: WatchState.Unlisted,
+		completed_episodes: 0,
+	};
 }

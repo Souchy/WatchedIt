@@ -1,13 +1,13 @@
-import { Session, User } from "@supabase/supabase-js";
+import { Session } from "@supabase/supabase-js";
 import { MediaUserData } from "../MediaUserData";
-import { UserChangedAction } from "./actions/UserChangedAction";
 
-export interface AppState {
-	session: Session | null;
-	mediaUserDataMap: Record<number, MediaUserData> | null;
+export class AppState {
+	session: Session | null = null;
+	mediaUserDataMap: Record<number, MediaUserData> = {};
 }
 
-export const initialState: AppState = {
-	session: null,
-	mediaUserDataMap: null,
-};
+export const initialState: AppState = new AppState();
+// {
+// 	session: null,
+// 	mediaUserDataMap: {},
+// };

@@ -1,105 +1,107 @@
 import { IRouteContext, route } from "@aurelia/router";
-import { MovieItem, TMDB } from "@leandrowkz/tmdb";
-import { bindable, ILogger, resolve } from "aurelia";
+import { createStateMemoizer, fromState } from "@aurelia/state";
+import { MovieItem, TMDB, TVShow, TVShowItem } from "@leandrowkz/tmdb";
+import { bindable, ILogger, observable, resolve } from "aurelia";
 import { GenresMap } from "src/core/Genres";
+import { createDefaultMediaUserData, MediaUserData } from "src/core/MediaUserData";
+import { SupabaseService } from "src/core/services/SupabaseService";
+import { AppState } from "src/core/state/AppState";
 import { AvailableButtonsPerWatchState, ResetButtonMap, SetPlanToWatchButton, WatchState, WatchStateButton } from "src/core/WatchState";
 import { MoviePage } from "src/pages/movie-page/MoviePage";
 
 
-// @route({
-// 	routes: [
-// 		MoviePage
-// 	],
-// })
 export class MovieMini {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MovieMini');
 	private readonly parentCtx: IRouteContext = resolve(IRouteContext).parent;
 	private readonly tmdb = resolve(TMDB);
 	private readonly genresMap = resolve(GenresMap);
+	private readonly supabase = resolve(SupabaseService);
 
 	@bindable public movie: MovieItem;
+	@bindable public tvshow: TVShow;
 
-	private _watchState: WatchState | null = null;
+	@fromState((state: AppState) => state.mediaUserDataMap)
+	public dataMap!: Record<number, MediaUserData> | null;
 
 	bound() {
-		if (this._watchState === null) {
-			let state = localStorage.getItem(`movie_${this.movie.id}_watchState`);
-			state ??= WatchState[WatchState.Unlisted];
-			this._watchState = WatchState[state];
-		}
 	}
 
+	//region Getters
+	public get media(): MovieItem | TVShow {
+		return this.movie || this.tvshow;
+	}
 	public get id(): number {
-		return this.movie.id;
+		return this.media.id;
+	}
+	public get overview(): string {
+		return this.media.overview;
+	}
+	public get title(): string {
+		return this.movie.title || this.tvshow.name || 'N/A';
 	}
 	public get posterUrl(): string {
-		if (this.movie.poster_path) {
-			return `https://image.tmdb.org/t/p/w200${this.movie.poster_path}`;
+		return this.media.poster_path ? `https://image.tmdb.org/t/p/w200${this.media.poster_path}` : 'N/A';
+	}
+	public get releaseDate(): string {
+		return this.movie.release_date || this.tvshow.first_air_date || 'N/A';
+	}
+	public get releaseYear(): string {
+		return (this.releaseDate && this.releaseDate.length >= 4)
+			? this.releaseDate.substring(0, 4)
+			: 'N/A';
+	}
+	public get genres(): string {
+		if (this.movie) {
+			return this.movie.genre_ids.map(id => this.genresMap.movies[id]).join(', ');
+		}
+		if (this.tvshow) {
+			return this.tvshow.genre_ids?.map(id => this.genresMap.tv[id]).join(', ') || '';
 		}
 		return '';
 	}
+	//#endregion
 
-	public get title(): string {
-		return this.movie.title;
-	}
-
-	public get releaseDate(): string {
-		return this.movie.release_date;
-	}
-
-	public get releaseYear(): string {
-		return this.movie.release_date ? this.movie.release_date.split('-')[0] : 'N/A';
-	}
-
-	public get overview(): string {
-		return this.movie.overview;
-	}
-
-	public get watchState(): WatchState {
-		// if (this._watchState === null) {
-		// 	let state = localStorage.getItem(`movie_${this.movie.id}_watchState`);
-		// 	this.logger.error(`Loading watch state for movie ID: ${this.movie.id} from localStorage ${state}`);
-		// 	state ??= WatchState[WatchState.Unlisted];
-		// 	// this._watchState = WatchState[state];
-		// 	return WatchState[state];
-		// }
-		return this._watchState;
-	}
-	public set watchState(value: WatchState) {
-		this.logger.debug(`Watch state changed to: ${value} for movie ID: ${this.movie.id}`);
-		this._watchState = value;
-		if (value === WatchState.Unlisted) {
-			localStorage.removeItem(`movie_${this.movie.id}_watchState`);
-			return;
-		}
-		localStorage.setItem(`movie_${this.movie.id}_watchState`, WatchState[value]);
-	}
-
-	public get genres(): string {
-		return this.movie.genre_ids.map(id => this.genresMap.movies[id]).join(', ');
-	}
-
+	//#region State properties
 	public get availableWatchStateButtons(): WatchStateButton[] {
-		// this.logger.warn(`Loading watch state for movie ID: ${this.movie.id} : ${this._watchState}`);
 		return AvailableButtonsPerWatchState[this.watchState];
 	}
-	public get resetWatchStateButton(): WatchStateButton | undefined {
+	public get resetWatchStateButton(): WatchStateButton | null {
 		return ResetButtonMap.get(this.watchState);
 	}
+	public get watchState(): WatchState {
+		return this.dataMap && this.dataMap[this.media.id]
+			? this.dataMap[this.media.id].state
+			: WatchState.Unlisted;
+	}
+	public set watchState(value: WatchState) {
+		this.logger.debug(`Watch state changed to: ${value} for movie ID: ${this.media.id}`);
+		this.supabase.updateMediaUserData(this.media.id, {
+			state: value,
+		}).then(success => {
+			this.logger.debug(`Supabase updateMediaUserData completed for movie ID: ${this.media.id} with success: ${success} and value: ${value}`);
+		});
+	}
+	//#endregion
 
+	//#region Actions
 	private clickWatchStateButton(btn: WatchStateButton) {
 		this.watchState = btn.setWatchState;
 	}
+	public incrementEpisodesCompleted(): void {
+		// const currentData = this.state.getMediaUserDataOrDefault(this.tvshow.id);
+		const currentData = this.dataMap[this.tvshow.id] || createDefaultMediaUserData();
+		let updatedData: Partial<MediaUserData> = {
+			completed_episodes: currentData.completed_episodes + 1,
+		};
 
-	private get state1(): WatchStateButton {
-		return SetPlanToWatchButton;
-	}
+		if (updatedData.completed_episodes >= this.tvshow.number_of_episodes) {
+			updatedData.completed_episodes = this.tvshow.number_of_episodes;
+			updatedData.state = WatchState.Completed;
+			updatedData.watch_completed_date = new Date().toISOString();
+		}
 
-	private get bootstrapclass(): string {
-		return 'bi bi-pencil-square';
+		this.supabase.updateMediaUserData(this.tvshow.id, updatedData);
 	}
-	private get ficlass(): string {
-		return 'fi fi-rr-plus-circle';
-	}
+	//#endregion
 
 }
