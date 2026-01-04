@@ -5,4 +5,8 @@
   <li repeat.for="show of shows?.results">
     <movie-mini tvshow.bind="show"></movie-mini>
   </li>
+  <li repeat.for="item of medias">
+    <movie-mini if.bind="item.kind == 0" movie.bind="item.details"></movie-mini>
+    <movie-mini if.bind="item.kind == 1" tvshow.bind="item.details"></movie-mini>
+  </li>
 </ul>

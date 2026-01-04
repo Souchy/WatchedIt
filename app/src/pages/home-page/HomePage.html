@@ -1,4 +1,13 @@
 <!-- list of movies/shows the user is watching now and unfinished -->
 <!-- <watching-list></watching-list> -->
 
+<!-- <div repeat.for="item of watching">
+	allo ${item.tmdb_id}
+</div> -->
+
+<h2>Watching</h2>
+<movie-list medias.bind="watchingData"></movie-list>
+<h2>Plan to Watch</h2>
+<movie-list medias.bind="planToWatchData"></movie-list>
+
 <trending-movies></trending-movies>

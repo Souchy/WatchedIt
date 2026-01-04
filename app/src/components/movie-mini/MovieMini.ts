@@ -1,6 +1,6 @@
 import { IRouteContext, route } from "@aurelia/router";
 import { createStateMemoizer, fromState } from "@aurelia/state";
-import { MovieItem, TMDB, TVShow, TVShowItem } from "@leandrowkz/tmdb";
+import { Movie, MovieItem, TMDB, TVShow, TVShowItem } from "@leandrowkz/tmdb";
 import { Session } from "@supabase/supabase-js";
 import { bindable, ILogger, observable, resolve } from "aurelia";
 import { GenresMap } from "src/core/Genres";
@@ -20,8 +20,8 @@ export class MovieMini {
 	private readonly movieRoute: typeof MoviePage = MoviePage;
 	private readonly tvshowRoute: typeof TVShowPage = TVShowPage;
 
-	@bindable public movie: MovieItem | null = null;
-	@bindable public tvshow: TVShowItem | null = null;
+	@bindable public movie: MovieItem | Movie | null = null;
+	@bindable public tvshow: TVShowItem | TVShow | null = null;
 
 	@fromState((state: AppState) => state.session)
 	public session: Session | null = null;
@@ -64,9 +64,17 @@ export class MovieMini {
 	}
 	public get genres(): string {
 		if (this.movie) {
+			if (!this.movie.genre_ids) {
+				let movie = this.movie as Movie;
+				return movie.genres.map(g => g.name).join(', ');
+			}
 			return this.movie.genre_ids.map(id => this.genresMap.movies[id]).join(', ');
 		}
 		if (this.tvshow) {
+			if (!this.tvshow.genre_ids) {
+				let tvshow = this.tvshow as TVShow;
+				return tvshow.genres.map(g => g.name).join(', ');
+			}
 			return this.tvshow.genre_ids?.map(id => this.genresMap.tv[id]).join(', ') || '';
 		}
 		return '';
