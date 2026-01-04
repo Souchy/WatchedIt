@@ -18,19 +18,29 @@ export class CallbackPage {
 
 	public constructor(private readonly store: IStore<AppState, AppAction>, private supabase: SupabaseService) {
 		this.logger.debug('CallbackPage constructor', store, supabase);
+
 	}
 
 	async attached() {
 		this.logger.debug(`CallbackPage attached, processing OAuth callback... at ${window.location.href}`);
-		const { data, error } = await this.supabase.supabaseClient.auth.exchangeCodeForSession(window.location.href);
 
+		let { data, error } = await this.supabase.supabaseClient.auth.getSession();
 		if (error) {
-			console.error('Error exchanging code:', error);
+			this.logger.error('Error getting session:', error);
 		} else {
-			console.log('Logged in successfully:', data);
-			// Redirect user to the home/dashboard page
-			window.location.href = '/home';
+			this.logger.debug('Current session:', data.session);
 		}
+
+
+		// const { data, error } = await this.supabase.supabaseClient.auth.exchangeCodeForSession(window.location.href);
+
+		// if (error) {
+		// 	console.error('Error exchanging code:', error);
+		// } else {
+		// 	console.log('Logged in successfully:', data);
+		// 	// Redirect user to the home/dashboard page
+		// 	window.location.href = '/home';
+		// }
 	}
 }
 

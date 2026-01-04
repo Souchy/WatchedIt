@@ -1,0 +1,49 @@
+navbar {
+
+	nav {
+		margin-top: -8px;
+		margin-left: -8px;
+		margin-right: -8px;
+		height: 60px;
+		display: flex;
+
+		align-items: center;
+		justify-content: space-evenly;
+		border-bottom: 1px solid var(--outline);
+		background-color: #1b2142; // Navy background
+
+		.navbar-logo i {
+			height: 40px;
+		}
+
+		.navbar-links {
+			display: flex;
+			list-style: none;
+			margin: 0;
+			padding: 0;
+
+			>li {
+				margin: 0 0.8rem;
+				align-content: center;
+			}
+		}
+
+		.navbar-right {
+			height: 100%;
+			display: flex;
+			flex-direction: row;
+		}
+
+		a {
+			text-decoration: none;
+			color: #c1c9ce; // Light text color
+			font-size: 0.9rem;
+			transition: color 0.3s ease;
+
+			&:hover {
+				color: #ffffff; // White on hover
+			}
+		}
+	}
+
+}

@@ -1,0 +1,29 @@
+auth-signin {
+
+	.dropdown-container {
+		height: 100%;
+		align-content: center;
+		cursor: pointer;
+	}
+
+	.dropdown-title {
+		position: relative;
+	}
+
+	.dropdown-choices {
+		display: none;
+		position: absolute;
+		right: 0px;
+		white-space: nowrap;
+	}
+
+	.dropdown-container:hover,
+	.dropdown-container.show {
+		.dropdown-title {
+			.dropdown-choices {
+				display: flex;
+				flex-direction: column;
+			}
+		}
+	}
+}

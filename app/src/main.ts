@@ -19,6 +19,9 @@ import { StateDefaultConfiguration, IStore, IStoreRegistry } from '@aurelia/stat
 import { initialState } from './core/state/AppState';
 import { appStateHandler } from './core/state/AppHandler';
 import { SupabaseService } from './core/services/SupabaseService';
+import { AuthModule } from './components/auth-module/AuthModule';
+import { AuthSignin } from './components/auth-module/auth-signin/AuthSignin';
+import { Navbar } from './components/navbar/Navbar';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
   auth: {
@@ -101,7 +104,7 @@ au.register(Registration.instance(GenresMap, genresMap));
 // Components
 au.register(SouchyAu);
 au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage);
-au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini);
+au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar);
 
 
 await au.app(MyApp).start();

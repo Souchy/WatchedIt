@@ -1,4 +1,4 @@
-import { SupabaseClient } from "@supabase/supabase-js";
+import { Provider, SupabaseClient } from "@supabase/supabase-js";
 import { ILogger, inject, resolve } from "aurelia";
 import { MediaUserData } from "../MediaUserData";
 import { IStore } from "@aurelia/state";
@@ -21,55 +21,44 @@ export class SupabaseService {
 		this.authUnsubscribe = this.supabaseClient.auth.onAuthStateChange((event, session) => {
 			this.logger.debug(`Supabase Auth State Changed: ${event}`, session);
 			this.store.dispatch(new UserChangedAction(session));
+			if (session) {
+				this.logger.debug(`Supabase Auth activated auth-refresh`);
+				this.supabaseClient.auth.startAutoRefresh();
+				this.fetchMediaUserDataMap();
+			}
 		});
 	}
 
-	public async signinWithAzure(): Promise<void> {
-		let redirect_uri = window.location.origin + "/callback"; // 
+	public async signinWith(provider: Provider): Promise<void> {
+		let redirect_uri = window.location.origin; // + "/callback"; // 
 		// let redirect_uri = "https://ymgzzslmtldzmaqwkbqx.supabase.co/auth/v1/callback"; // http://localhost:9000 // + '/auth/callback';
 		this.logger.debug('Sign In with Azure OAuth button clicked, redirect_uri:', redirect_uri);
 
 		const usePopup = false;
-		
+
 		let res = await this.supabaseClient.auth.signInWithOAuth({
-			provider: 'azure',
+			provider: provider,
 			options: {
 				redirectTo: redirect_uri,
-				skipBrowserRedirect: usePopup
+				skipBrowserRedirect: usePopup,
+				scopes: 'email' // Needed for Supabase to get user email to create a user record
+				// scopes: 'email profile openid offline_access User.Read', // Add necessary scopes explicitly
 			}
 		});
 		this.logger.debug('Supabase OAuth Sign-In Result:', res);
-		
+
 		if (usePopup)
 			window.open(res.data.url, '_blank', 'width=500,height=600');
-
-
-		// let b = await this.supabaseClient.auth.exchangeCodeForSession("code");
-		// this.logger.debug('Supabase OAuth Exchange Code Result:', b);
-		// this.supabaseClient.auth.initialize();
-		// this.supabaseClient.auth.startAutoRefresh();
-		// this.supabaseClient.auth.refreshSession();
-		// // this.supabaseClient.auth.oauth.approveAuthorization("")
-		// // this.supabaseClient.auth.mfa.challenge({
-		// // 	channel: 'sms',
-		// // 	factorId: 'default',
-		// // 	webauthn: {
-		// // 		rpId: window.location.hostname,
-		// // 		rpOrigins: []
-		// // 	}
-		// // });
-		// this.supabaseClient.auth.admin.createUser({});
-		// this.supabaseClient.auth.getUser();
 	}
 
 	public async fetchMediaUserDataMap(): Promise<Record<number, MediaUserData> | null> {
-		// const sessionRes = await this.supabaseClient.auth.getSession();
-		let session = this.store.getState().session; // sessionRes?.data.session;
+		let session = this.store.getState().session;
 		if (!session) {
 			this.logger.warn('No active session found while fetching media user data map.');
 			return null;
 		}
 
+		this.logger.debug(`Fetching media user data for user (${session.user.email}).`);
 		const { data, error } = await this.supabaseClient
 			.from('media-user-data')
 			.select('*')
@@ -93,13 +82,13 @@ export class SupabaseService {
 				rating: item.rating,
 				watchStartDate: item.watch_start_date,
 				watchCompletedDate: item.watch_completed_date,
-			};
+			} satisfies MediaUserData;
 		}
 		this.store.dispatch(new MediaUserDataMapChangedAction(mediaUserDataMap));
 		return mediaUserDataMap;
 	}
 
-	public async updateMediaUserData(mediaId: number, mediaUserData: Partial<MediaUserData>): Promise<boolean> {
+	public async updateMediaUserData(mediaId: number, mediaUserData: MediaUserData): Promise<boolean> {
 		// const sessionRes = await this.supabaseClient.auth.getSession();
 		let session = this.store.getState().session; // sessionRes?.data.session;
 		if (!session) {
@@ -109,7 +98,7 @@ export class SupabaseService {
 
 		// save optimistically to state
 		const previousData = this.store.getState().mediaUserDataMap[mediaId] || null;
-		this.store.dispatch(new MediaUserDataChangedAction(mediaId, mediaUserData as MediaUserData));
+		this.store.dispatch(new MediaUserDataChangedAction(mediaId, mediaUserData));
 
 		// update db
 		const { data, error } = await this.supabaseClient
@@ -119,13 +108,13 @@ export class SupabaseService {
 				tmdb_id: mediaId,
 				...mediaUserData,
 			}, { onConflict: 'user_id,tmdb_id' });
+
+		// On error, rollback state change
 		if (error) {
-			// rollback the state change?
 			this.store.dispatch(new MediaUserDataChangedAction(mediaId, previousData));
 			this.logger.error('Error updating media user data:', error);
-			return false;
 		}
-		return true;
+		return Boolean(!error);
 	}
 
 	public dispose() {

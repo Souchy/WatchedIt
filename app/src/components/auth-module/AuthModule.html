@@ -1,0 +1,33 @@
+<template if.bind="!isAuthenticated">
+  <auth-signin></auth-signin>
+  <!-- <auth-signup></auth-signup> -->
+  <!-- <auth-forgot-password></auth-forgot-password> -->
+  <!-- <auth-reset-password></auth-reset-password> -->
+</template>
+<template else>
+  <!-- <div class="profile-menu"> -->
+
+    <div class="profile-avatar" click.trigger="toggleMenu()">
+      <i class="fi fi-ts-circle-user"></i> Souchy
+      <!-- Profile -->
+      <!-- <img src="https://via.placeholder.com/40" alt="Profile Avatar" class="profile-avatar" click.trigger="toggleMenu()" /> -->
+    </div>
+
+    <!-- Dropdown Menu -->
+    <div class="profile-dropdown">
+      <!-- <h3>Souchy</h3> -->
+      <ul>
+        <li>
+          <a href="profile">Profile</a>
+        </li>
+        <li>
+          <a href="settings">Settings</a>
+        </li>
+        <li>
+          <button type="button" click.trigger="logout()">Sign out</button>
+        </li>
+      </ul>
+    </div>
+
+  <!-- </div> -->
+</template>

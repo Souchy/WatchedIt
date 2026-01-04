@@ -28,8 +28,4 @@ export class HomePage {
 		this.logger.debug('HomePage constructor', store, supabase);
 	}
 
-	public async signInWithAzure() {
-		await this.supabase.signinWithAzure();
-	}
-
 }
