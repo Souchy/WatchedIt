@@ -172,7 +172,6 @@ movie-mini {
 
 		// Icon button
 		button {
-			width: 33.333%;
 			// height: 100%;
 			// width: 1.75rem;
 			// height: 1.75rem;
@@ -252,8 +251,12 @@ movie-mini {
 			background-color: black;
 			align-items: center;
 
-			i {
-				padding-top: 0.15rem;
+			button {
+				width: 33.333%;
+
+				i {
+					padding-top: 0.15rem;
+				}
 			}
 		}
 
