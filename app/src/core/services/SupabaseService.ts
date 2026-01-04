@@ -1,6 +1,6 @@
 import { AuthChangeEvent, Provider, Subscription, SupabaseClient } from "@supabase/supabase-js";
 import { ILogger, inject, resolve } from "aurelia";
-import { MediaUserData } from "../MediaUserData";
+import { MediaKind, MediaUserData } from "../MediaUserData";
 import { IStore } from "@aurelia/state";
 import { AppState } from "../state/AppState";
 import { AppAction } from "../state/AppHandler";
@@ -99,7 +99,7 @@ export class SupabaseService {
 		return mediaUserDataMap;
 	}
 
-	public async updateMediaUserData(mediaId: number, mediaUserData: Partial<MediaUserData>): Promise<boolean> {
+	public async updateMediaUserData(mediaId: number, kind: MediaKind, mediaUserData: Partial<MediaUserData>): Promise<boolean> {
 		// const sessionRes = await this.supabaseClient.auth.getSession();
 		let session = this.store.getState().session; // sessionRes?.data.session;
 		if (!session) {
@@ -109,36 +109,25 @@ export class SupabaseService {
 
 		// save optimistically to state
 		const previousData = this.store.getState().mediaUserDataMap[mediaId] || null;
-		this.store.dispatch(new MediaUserDataChangedAction(mediaId, mediaUserData));
+		this.store.dispatch(new MediaUserDataChangedAction(mediaId, kind, mediaUserData));
 		const updatedData = this.store.getState().mediaUserDataMap[mediaId];
 
 		// update db
 		const { data, error } = await this.supabaseClient
 			.from('media-user-data')
 			.upsert({
+				...updatedData,
 				user_id: session.user.id,
 				tmdb_id: mediaId,
-				...updatedData,
-				// ...mediaUserData,
+				kind: kind,
 			}, { onConflict: 'user_id,tmdb_id' });
 
 		// On error, rollback state change
 		if (error) {
-			this.store.dispatch(new MediaUserDataChangedAction(mediaId, previousData));
+			this.store.dispatch(new MediaUserDataChangedAction(mediaId, kind, previousData));
 			this.logger.error('Error updating media user data:', error);
 		}
 		return Boolean(!error);
-	}
-
-	public detaching() {
-		this.logger.debug('SupabaseService detaching, unsubscribing from auth changes');
-		// this.authUnsubscribe?.unsubscribe();
-		// this.authUnsubscribe = null;
-	}
-	public dispose() {
-		this.logger.debug('SupabaseService disposing, unsubscribing from auth changes');
-		// this.authUnsubscribe?.unsubscribe();
-		// this.authUnsubscribe = null;
 	}
 
 }

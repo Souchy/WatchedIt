@@ -1,12 +1,12 @@
 import { WatchState } from "src/core/WatchState";
 import { AppState } from "../AppState";
-import { createDefaultMediaUserData, MediaUserData } from "src/core/MediaUserData";
+import { createDefaultMediaUserData, MediaKind, MediaUserData } from "src/core/MediaUserData";
 
 export const MediaUserDataChangedActionName = "mediaUserDataChanged";
 
 export class MediaUserDataChangedAction {
 	public readonly type = MediaUserDataChangedActionName;
-	constructor(public tmdb_id: number /* | null */, public mediaUserData: Partial<MediaUserData>) { }
+	constructor(public tmdb_id: number, public kind: MediaKind, public mediaUserData: Partial<MediaUserData>) { }
 }
 
 export function MediaUserDataChangedHandler(currentState: AppState, action: MediaUserDataChangedAction): AppState {
@@ -15,7 +15,8 @@ export function MediaUserDataChangedHandler(currentState: AppState, action: Medi
 	// 	return currentState;
 	// }
 
-	const existingOrNewData = currentState.mediaUserDataMap[action.tmdb_id] || createDefaultMediaUserData();
+	const existingOrNewData = currentState.mediaUserDataMap[action.tmdb_id] 
+		|| createDefaultMediaUserData(currentState.session.user.id, action.tmdb_id, action.kind);
 
 	let updatedData = {
 		...existingOrNewData,
@@ -27,14 +28,4 @@ export function MediaUserDataChangedHandler(currentState: AppState, action: Medi
 
 	currentState.mediaUserDataMap[action.tmdb_id] = updatedData;
 	return currentState;
-	// return {
-	// 	...currentState,
-	// 	mediaUserDataMap: {
-	// 		...currentState.mediaUserDataMap,
-	// 		[action.id]: {
-	// 			...existingOrNewData,
-	// 			...action.mediaUserData,
-	// 		},
-	// 	},
-	// } satisfies AppState;
 }

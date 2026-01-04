@@ -1,9 +1,10 @@
 import { IRouteContext, route } from "@aurelia/router";
 import { createStateMemoizer, fromState } from "@aurelia/state";
 import { MovieItem, TMDB, TVShow, TVShowItem } from "@leandrowkz/tmdb";
+import { Session } from "@supabase/supabase-js";
 import { bindable, ILogger, observable, resolve } from "aurelia";
 import { GenresMap } from "src/core/Genres";
-import { createDefaultMediaUserData, MediaUserData } from "src/core/MediaUserData";
+import { createDefaultMediaUserData, MediaKind, MediaUserData } from "src/core/MediaUserData";
 import { SupabaseService } from "src/core/services/SupabaseService";
 import { AppState } from "src/core/state/AppState";
 import { AvailableButtonsPerWatchState, ResetButtonMap, SetPlanToWatchButton, WatchState, WatchStateButton } from "src/core/WatchState";
@@ -22,6 +23,8 @@ export class MovieMini {
 	@bindable public movie: MovieItem | null = null;
 	@bindable public tvshow: TVShowItem | null = null;
 
+	@fromState((state: AppState) => state.session)
+	public session: Session | null = null;
 	@fromState((state: AppState) => state.mediaUserDataMap)
 	public dataMap!: Record<number, MediaUserData> | null;
 
@@ -35,6 +38,9 @@ export class MovieMini {
 	}
 	public get media(): MovieItem | TVShowItem {
 		return this.movie || this.tvshow;
+	}
+	public get mediaKind(): MediaKind {
+		return this.movie ? MediaKind.Movie : MediaKind.TVShow;
 	}
 	public get id(): number {
 		return this.media.id;
@@ -81,10 +87,10 @@ export class MovieMini {
 	}
 	public set watchState(value: WatchState) {
 		this.logger.debug(`Watch state changed to: ${value} for movie ID: ${this.media.id}`);
-		this.supabase.updateMediaUserData(this.media.id, {
+		this.supabase.updateMediaUserData(this.media.id, this.mediaKind, {
 			state: value,
 		}).then(success => {
-			this.logger.debug(`Supabase updateMediaUserData completed for movie ID: ${this.media.id} with success: ${success} and value: ${value}`);
+			this.logger.debug(`Supabase updateMediaUserData completed for kind ${this.mediaKind}, ID: ${this.media.id} with success: ${success} and watchstate: ${value}`);
 		});
 	}
 	//#endregion
@@ -94,10 +100,9 @@ export class MovieMini {
 		this.watchState = btn.setWatchState;
 	}
 	public async incrementEpisodesCompleted(): Promise<void> {
-		// const currentData = this.state.getMediaUserDataOrDefault(this.tvshow.id);
-		const currentData = this.dataMap[this.tvshow.id] || createDefaultMediaUserData();
+		const currentDataEpisodes = this.dataMap[this.tvshow.id].completed_episodes || 0;
 		let updatedData: Partial<MediaUserData> = {
-			completed_episodes: currentData.completed_episodes + 1,
+			completed_episodes: currentDataEpisodes + 1,
 		};
 
 		const tvshowDetails = await this.tmdb.tvShows.details(this.tvshow.id);
@@ -108,7 +113,7 @@ export class MovieMini {
 			updatedData.watch_completed_date = new Date().toISOString();
 		}
 
-		this.supabase.updateMediaUserData(this.tvshow.id, updatedData);
+		this.supabase.updateMediaUserData(this.tvshow.id, this.mediaKind, updatedData);
 	}
 	//#endregion
 
