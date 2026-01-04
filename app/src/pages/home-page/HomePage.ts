@@ -35,16 +35,25 @@ export class HomePage {
 		// this.logger.debug('HomePage constructor', store, supabase);
 	}
 
+	bound() {
+		this.logger.debug('HomePage created');
+		this.mediaUserDataMapChanged({}, this.mediaUserDataMap);
+	}
+
 	/**
 	 * When the mediaUserDataMap changes, update the watching and plan to watch lists details
 	 */
 	async mediaUserDataMapChanged(previous: Record<string, MediaUserData>, current: Record<string, MediaUserData>) {
-		this.logger.debug('HomePage mediaUserDataMap changed:', Object.keys(this.mediaUserDataMap).length);
 		if (!current) {
 			return;
-		}	
+		}
+		this.logger.debug('HomePage mediaUserDataMap changed:', Object.keys(current).length);
 
 		this.logger.debug(`HomePage fetching details for watching and planned media: ${this.watching.length}`);
+
+		if (this.watchingData.length > 0 && this.planToWatchData.length > 0) {
+			return;
+		}
 
 		this.watchingData = await Promise.all(this.watching.map(async item => {
 			const api = item.kind === MediaKind.Movie ? this.tmdb.movies : this.tmdb.tvShows;
