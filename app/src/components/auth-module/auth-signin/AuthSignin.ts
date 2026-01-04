@@ -19,5 +19,9 @@ export class AuthSignin {
 		this.logger.debug('AuthSignin signinWithGoogle called');
 		await this.supabase.signinWith('google');
 	}
-	
+	public async signinWithGithub(): Promise<void> {
+		this.logger.debug('AuthSignin signinWithGithub called');
+		await this.supabase.signinWith('github');
+	}
+
 }
