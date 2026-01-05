@@ -10,6 +10,7 @@ import { AppAction } from './core/state/AppHandler';
 import { SupabaseService } from './core/services/SupabaseService';
 import { CallbackPage } from './pages/callback/CallbackPage';
 import { TVShowPage } from './pages/tvshow-page/TVShowPage';
+import { SearchPage } from './pages/search-page/SearchPage';
 
 @route({
   routes: [
@@ -21,6 +22,7 @@ import { TVShowPage } from './pages/tvshow-page/TVShowPage';
     },
     MoviePage,
     TVShowPage,
+    SearchPage,
     CallbackPage
     // {
     //   path: ['', 'home'],
@@ -65,12 +67,12 @@ export class MyApp {
     //   }
     // });
     // this.logger.debug('Supabase OAuth Sign-In Result:', res);
-    
+
     // await this.supabase.fetchMediaUserDataMap();
   }
 
-  public dispose() {
-    this.supabase.dispose();
-  }
+  // public dispose() {
+  //   this.supabase.dispose();
+  // }
 
 }

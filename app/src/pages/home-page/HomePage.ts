@@ -10,13 +10,12 @@ import { WatchState } from "src/core/WatchState";
 import { MediaKind, MediaUserData } from "src/core/MediaUserData";
 import { Movie, TMDB, TVShow } from "@leandrowkz/tmdb";
 
-
 @route({
 	id: 'home',
 	path: ['', 'home'],
 	title: 'Home',
 })
-@inject(IStore, SupabaseService)
+@inject(IStore)
 export class HomePage {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('HomePage');
 	private readonly supabase: SupabaseService = resolve(SupabaseService);
@@ -63,6 +62,9 @@ export class HomePage {
 				details: mediaDetails,
 			};
 		}));
+		// this.watchingData = this.watchingData.sort((a, b) => {
+		// 	return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+		// });
 		this.planToWatchData = await Promise.all(this.planToWatch.map(async item => {
 			const api = item.kind === MediaKind.Movie ? this.tmdb.movies : this.tmdb.tvShows;
 			let mediaDetails = await api.details(item.tmdb_id);
@@ -71,17 +73,36 @@ export class HomePage {
 				details: mediaDetails,
 			};
 		}));
+		// this.planToWatchData = this.planToWatchData.sort((a, b) => {
+		// 	return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+		// });
 
 		// this.logger.debug('Fetched watching data:', this.watchingData);
 		// this.logger.debug('Fetched plan to watch data:', this.planToWatchData);
 	}
 
 	public get watching() {
-		return Object.values(this.mediaUserDataMap).filter(mud => mud?.state === WatchState.Watching) || [];
+		const values = Object.values(this.mediaUserDataMap);
+		const max = Math.min(values.length, 20); // TODO: Limit here and make a page with all watching medias
+		return values
+			.filter(mud => mud?.state === WatchState.Watching)
+			.sort((a, b) => {
+				return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+			})
+			// .slice(0, max)
+			|| [];
 	}
 
 	public get planToWatch() {
-		return Object.values(this.mediaUserDataMap).filter(mud => mud?.state === WatchState.PlanToWatch) || [];
+		const values = Object.values(this.mediaUserDataMap);
+		const max = Math.min(values.length, 20); // TODO: Limit here and make a page with all  planned to watch medias
+		return values
+			.filter(mud => mud?.state === WatchState.PlanToWatch)
+			.sort((a, b) => {
+				return new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime();
+			})
+			// .slice(0, max)
+			|| [];
 	}
 
 }

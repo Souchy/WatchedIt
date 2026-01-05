@@ -1,0 +1,13 @@
+<div class="filters">
+  <input class="textSearch" id="searchInput" type="search" name="q" value.bind="searchQuery" placeholder="Search movies, TV shows or people" aria-label="Search movies and TV shows" autocomplete="off" />
+  <select value.bind="filterFormat">
+    <option value="all">All</option>
+    <option value="0">Movies</option>
+    <option value="1">TV Shows</option>
+    <option value="2">People</option>
+  </select>
+  <button id="searchBtn" type="submit" class="btn-primary" click.trigger="search()">Search</button>
+</div>
+
+<movie-list medias.bind="results.results"></movie-list>
+<button click.trigger="searchMore()">Load more</button>
