@@ -10,7 +10,7 @@ import { AppAction } from './core/state/AppHandler';
 import { SupabaseService } from './core/services/SupabaseService';
 import { CallbackPage } from './pages/callback/CallbackPage';
 import { SearchPage } from './pages/search-page/SearchPage';
-import { TvShowPage } from './pages/tvshow-page1/TvShowPage';
+import { TvShowPage } from './pages/tvshow-page/TvShowPage';
 
 @route({
   routes: [
