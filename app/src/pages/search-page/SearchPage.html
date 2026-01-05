@@ -1,13 +1,40 @@
 <div class="filters">
-  <input class="textSearch" autofocus ref="searchEle" type="search" value.bind="filter.query" placeholder="Search movies, TV shows or people" aria-label="Search movies and TV shows" autocomplete="off" />
-  <select value.bind="filter.format">
-    <option value="all">All</option>
-    <option value="0">Movies</option>
-    <option value="1">TV Shows</option>
-    <option value="2">People</option>
-  </select>
+
+  <section>
+    <header>Search</header>
+    <input type="search" class="textSearch" ref="searchEle" value.bind="filter.query" autofocus placeholder="Search movies, TV shows or people" aria-label="Search movies and TV shows" autocomplete="off" />
+  </section>
+
+  <section>
+    <header>Format</header>
+    <select value.bind="filter.format">
+      <option value="all">All</option>
+      <option value="0">Movies</option>
+      <option value="1">TV Shows</option>
+      <option value="2">People</option>
+    </select>
+  </section>
+
+  <section>
+    <header>Year</header>
+    <input type="number" min="1900" max="2099" step="1" value.bind="filter.year" />
+  </section>
+
+  <section>
+    <header>Include Adult</header>
+    <input type="checkbox" checked.bind="filter.include_adult" />
+  </section>
+
+  <section>
+    <header>Reset</header>
+    <button class="btnReset" click.trigger="resetFilter()">x</button>
+  </section>
+
+
   <!-- <button id="searchBtn" type="submit" class="btn-primary" click.trigger="search()">Search</button> -->
 </div>
+
+
 
 <movie-list medias.bind="results.results"></movie-list>
 <button if.bind="results" click.trigger="searchMore()">Load more</button>

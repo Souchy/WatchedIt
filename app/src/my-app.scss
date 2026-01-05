@@ -3,8 +3,7 @@
 @use "@flaticon/flaticon-uicons/css/regular/rounded.css" as rr;
 @use "@flaticon/flaticon-uicons/css/thin/straight.css" as ts;
 @use "@flaticon/flaticon-uicons/css/thin/rounded.css" as tr;
-@use "bootstrap-icons/font/bootstrap-icons" with (
-  $bootstrap-icons-font-dir: "bootstrap-icons/font/fonts"
+@use "bootstrap-icons/font/bootstrap-icons" with ($bootstrap-icons-font-dir: "bootstrap-icons/font/fonts"
 );
 
 :root {
@@ -21,25 +20,22 @@
   /* height of the fade mask at the bottom */
   --fade-height: 2.0rem;
   /* color used for the bottom fade (matches overlay darkness) */
-  --fade-gradient: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%,  rgba(0, 0, 0, 0.5) 30%, rgba(0, 0, 0, 1) 100%);
-  --glow-color: rgb(200, 200, 200); /* Warm visible glow */
+  --fade-gradient: linear-gradient(180deg, rgba(0, 0, 0, 0) 0%, rgba(0, 0, 0, 0.5) 30%, rgba(0, 0, 0, 1) 100%);
+  --glow-color: rgb(200, 200, 200);
+  /* Warm visible glow */
 }
 
-// nav {
-//   background: #eee;
-//   display: flex;
-// }
-
-// a {
-//   padding: 10px;
-//   text-decoration: none;
-//   color: black;
-
-//   &:hover {
-//     background-color: darkgray;
-//   }
-// }
-
-// .active {
-//   background-color: lightgray;
-// }
+/**
+ * Fix Souchy.Au 
+ */
+input[type="search"] {
+  border: 1px solid #bdbdbd;
+  border-radius: var(--radius);
+  padding: .5em 1em;
+  background: var(--surface);
+  color: var(--on-surface);
+  font-size: 1em;
+  margin: .25em 0 1em;
+  box-shadow: none;
+  transition: border-color .2s, box-shadow .2s;
+}

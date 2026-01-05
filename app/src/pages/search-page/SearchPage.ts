@@ -8,7 +8,7 @@ import { fromState, IStore } from "@aurelia/state";
 import { Session } from "@supabase/supabase-js";
 import { WatchState } from "src/core/WatchState";
 import { MediaKind, MediaUserData } from "src/core/MediaUserData";
-import { LanguageCode, Movie, MovieItem, SearchMultiSearchFilters, SearchMultiSearchResponse, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
+import { LanguageCode, Movie, MovieItem, SearchMoviesFilters, SearchMultiSearchFilters, SearchMultiSearchResponse, SearchTVShowsFilters, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
 
 export class Range {
 	min: number | null = null;
@@ -70,11 +70,11 @@ export class TMDBSearchFilters {
 	title: 'Search',
 })
 @inject(IStore)
-@watch('filter.query', 'search', { flush: 'async'})
-@watch('filter.format', 'search', { flush: 'async'})
-@watch('filter.language', 'search', { flush: 'async'})
-@watch('filter.include_adult', 'search', { flush: 'async'})
-@watch('filter.year', 'search', { flush: 'async'})
+@watch('filter.query', 'search', { flush: 'async' })
+@watch('filter.format', 'search', { flush: 'async' })
+@watch('filter.language', 'search', { flush: 'async' })
+@watch('filter.include_adult', 'search', { flush: 'async' })
+@watch('filter.year', 'search', { flush: 'async' })
 export class SearchPage {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('SearchPage');
 	private readonly supabase: SupabaseService = resolve(SupabaseService);
@@ -117,6 +117,10 @@ export class SearchPage {
 		this.searchEle.focus();
 	}
 
+	public resetFilter() {
+		this.filter = new TMDBSearchFilters();
+	}
+
 	public search() {
 		if (!this.filter.query || this.filter.query.trim() === '') {
 			this.results = null;
@@ -137,13 +141,16 @@ export class SearchPage {
 		const nextPage = (this.results?.page || 0) + 1;
 		this.logger.debug('Searching more, page', nextPage, this.filter.query, this.filter.format, this.includeMovies, this.includeTVShows);
 
-		let tvs = this.includeTVShows ? await this.tmdb.search.tvShows({
+		let tvFilter: SearchTVShowsFilters = {
 			query: this.filter.query,
 			page: nextPage,
-			// first_air_date_year: this.filterYear,
 			include_adult: this.filter.include_adult,
 			language: this.filter.language,
-		}) : { page: 1, results: [], total_pages: 1, total_results: 0 };
+			first_air_date_year: this.filter.year,
+		};
+		// if (this.filter.year)
+		// 	tvFilter.first_air_date_year = this.filter.year;
+		let tvs = this.includeTVShows ? await this.tmdb.search.tvShows(tvFilter) : { page: 1, results: [], total_pages: 1, total_results: 0 };
 		const tvResults = tvs.results.map(tvshow => {
 			return {
 				kind: MediaKind.TVShow,
@@ -151,13 +158,14 @@ export class SearchPage {
 			};
 		})
 
-		let movies = this.includeMovies ? await this.tmdb.search.movies({
+		let movieFilter: SearchMoviesFilters = {
 			query: this.filter.query,
 			page: nextPage,
-			// primary_release_year: this.filterYear,
 			include_adult: this.filter.include_adult,
 			language: this.filter.language,
-		}) : { page: 1, results: [], total_pages: 1, total_results: 0 };
+			primary_release_year: this.filter.year,
+		};
+		let movies = this.includeMovies ? await this.tmdb.search.movies(movieFilter) : { page: 1, results: [], total_pages: 1, total_results: 0 };
 		const movieResults = movies.results.map(movie => {
 			return {
 				kind: MediaKind.Movie,
