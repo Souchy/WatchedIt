@@ -9,7 +9,7 @@ import { SupabaseService } from "src/core/services/SupabaseService";
 import { AppState } from "src/core/state/AppState";
 import { AvailableButtonsPerWatchState, ResetButtonMap, SetPlanToWatchButton, WatchState, WatchStateButton } from "src/core/WatchState";
 import { MoviePage } from "src/pages/movie-page/MoviePage";
-import { TVShowPage } from "src/pages/tvshow-page/TVShowPage";
+import { TvShowPage } from "src/pages/tvshow-page/TvShowPage";
 
 export class MovieMini {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MovieMini');
@@ -18,7 +18,7 @@ export class MovieMini {
 	private readonly genresMap = resolve(GenresMap);
 	private readonly supabase = resolve(SupabaseService);
 	private readonly movieRoute: typeof MoviePage = MoviePage;
-	private readonly tvshowRoute: typeof TVShowPage = TVShowPage;
+	private readonly tvshowRoute: typeof TvShowPage = TvShowPage;
 
 	@bindable public movie: MovieItem | Movie | null = null;
 	@bindable public tvshow: TVShowItem | TVShow | null = null;

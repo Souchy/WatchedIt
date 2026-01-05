@@ -23,7 +23,7 @@ import { AuthModule } from './components/auth-module/AuthModule';
 import { AuthSignin } from './components/auth-module/auth-signin/AuthSignin';
 import { Navbar } from './components/navbar/Navbar';
 import { CallbackPage } from './pages/callback/CallbackPage';
-import { TVShowPage } from './pages/tvshow-page/TVShowPage';
+import { TvShowPage } from './pages/tvshow-page/TvShowPage';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
   auth: {
@@ -102,7 +102,7 @@ au.register(Registration.singleton(SupabaseService, SupabaseService));
 au.register(Registration.instance(GenresMap, genresMap));
 // Components
 au.register(SouchyAu);
-au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage, CallbackPage, TVShowPage);
+au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage, CallbackPage, TvShowPage);
 au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar);
 
 

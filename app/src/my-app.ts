@@ -9,8 +9,8 @@ import { AppState } from './core/state/AppState';
 import { AppAction } from './core/state/AppHandler';
 import { SupabaseService } from './core/services/SupabaseService';
 import { CallbackPage } from './pages/callback/CallbackPage';
-import { TVShowPage } from './pages/tvshow-page/TVShowPage';
 import { SearchPage } from './pages/search-page/SearchPage';
+import { TvShowPage } from './pages/tvshow-page/TvShowPage';
 
 @route({
   routes: [
@@ -21,7 +21,7 @@ import { SearchPage } from './pages/search-page/SearchPage';
       title: 'About',
     },
     MoviePage,
-    TVShowPage,
+    TvShowPage,
     SearchPage,
     CallbackPage
     // {

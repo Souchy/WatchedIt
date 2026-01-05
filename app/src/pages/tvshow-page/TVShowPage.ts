@@ -8,8 +8,8 @@ import { Movie, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/t
 	path: ['tv/:id'],
 	title: 'TV Show',
 })
-export class TVShowPage implements IRouteViewModel {
-	private readonly logger: ILogger = resolve(ILogger).scopeTo('TVShowPage');
+export class TvShowPage implements IRouteViewModel {
+	private readonly logger: ILogger = resolve(ILogger).scopeTo('TvShowPage');
 	private readonly tmdb = resolve(TMDB);
 
 	private tvshowId: number;
@@ -47,6 +47,12 @@ export class TVShowPage implements IRouteViewModel {
 	public get posterUrl(): string {
 		if (this.tvshow.poster_path) {
 			return `https://image.tmdb.org/t/p/w200${this.tvshow.poster_path}`;
+		}
+		return '';
+	}
+	public get backdropUrl(): string {
+		if (this.tvshow.backdrop_path) {
+			return `https://image.tmdb.org/t/p/original${this.tvshow.backdrop_path}`;
 		}
 		return '';
 	}

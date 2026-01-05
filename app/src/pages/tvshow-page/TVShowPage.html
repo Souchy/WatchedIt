@@ -1,21 +1,22 @@
+<img class="backdrop" src.bind="backdropUrl" alt.bind="`Backdrop for ${title}`" />
 
-<header>
-	  <h1>${title}</h1>
+<header class="overdrop">
+  <h1>${title} (${releaseYear})</h1>
 </header>
-<section class="movie-details">
-	<figure class="poster">
-		<img src.bind="posterUrl" alt.bind="`Poster for ${title}`" />
-	</figure>
-	<div class="details-info">
-		<p><strong>Release Date:</strong> ${releaseDate}</p>
-		<p><strong>Rating:</strong> ${tvshow.vote_average} / 10</p>
-		<p><strong>Overview:</strong> ${tvshow.overview}</p>
-		<!-- Add more movie details as needed -->
-	</div>
+<section class="movie-details overdrop">
+  <figure class="poster">
+    <img src.bind="posterUrl" alt.bind="`Poster for ${title}`" />
+  </figure>
+  <div class="details-info">
+    <p><strong>Release Date:</strong> ${releaseDate}</p>
+    <p><strong>Rating:</strong> ${tvshow.vote_average} / 10</p>
+    <p><strong>Overview:</strong> ${tvshow.overview}</p>
+    <!-- Add more movie details as needed -->
+  </div>
 </section>
 
 <section>
-	<h2>Similar TV Shows</h2>
-	<movie-list shows.bind="similar" size.bind="100"></movie-list>
-	<button click.trigger="moreSimilar()">Load More</button>
+  <h2>Similar TV Shows</h2>
+  <movie-list shows.bind="similar" size.bind="120"></movie-list>
+  <button click.trigger="moreSimilar()">Load More</button>
 </section>

@@ -26,13 +26,35 @@ export class MoviePage implements IRouteViewModel {
 		this.movie = await this.tmdb.movies.details(this.movieId);
 		this.logger.debug('Loaded movie details:', this.movie);
 		// this.similar = await this.tmdb.movies.similar(this.movieId);
-		this.similar = await this.tmdb.movies.recommendations(this.movieId);
-		this.logger.debug('Loaded similar movies:', this.similar);
+		// this.similar = await this.tmdb.movies.recommendations(this.movieId);
+		// this.logger.debug('Loaded similar movies:', this.similar);
+		await this.moreSimilar();
+	}
+	
+	public async moreSimilar() {
+		if (!this.similar) {
+			this.similar = await this.tmdb.movies.recommendations(this.movieId);
+			this.logger.debug('Loaded similar movies:', this.similar);
+			return;
+		}
+		const nextPage = this.similar.page + 1;
+		const newSimilar = await this.tmdb.movies.recommendations(this.movieId, { page: nextPage });
+		this.similar.results.push(...newSimilar.results);
+		this.similar.page = newSimilar.page;
+		this.similar.total_pages = newSimilar.total_pages;
+		this.similar.total_results = newSimilar.total_results;
+		this.logger.debug('Loaded more similar movies, page', nextPage, ':', newSimilar);
 	}
 
 	public get posterUrl(): string {
 		if (this.movie.poster_path) {
 			return `https://image.tmdb.org/t/p/w200${this.movie.poster_path}`;
+		}
+		return '';
+	}
+	public get backdropUrl(): string {
+		if (this.movie.backdrop_path) {
+			return `https://image.tmdb.org/t/p/original${this.movie.backdrop_path}`;
 		}
 		return '';
 	}

@@ -1,20 +1,19 @@
-  <nav>
+<nav>
+  <div class="navbar-logo">
+    <a href="home"><i class="fi fi-rr-home"></i></a>
+  </div>
 
-    <div class="navbar-logo">
-      <a href="home"><i class="fi fi-rr-home"></i></a>
-    </div>
+  <ul class="navbar-links">
+    <li><a href="welcome">Welcome</a></li>
+    <li><a href="about">About</a></li>
+    <li><a href="search"><i class="fi fi-rr-search"></i></a></li>
+  </ul>
 
+  <div class="navbar-right">
     <ul class="navbar-links">
-      <li><a href="welcome">Welcome</a></li>
-      <li><a href="about">About</a></li>
-      <li><a href="search"><i class="fi fi-rr-search"></i></a></li>
+      <li>
+        <auth-module></auth-module>
+      </li>
     </ul>
-
-    <div class="navbar-right">
-      <ul class="navbar-links">
-        <li>
-          <auth-module></auth-module>
-        </li>
-      </ul>
-    </div>
-  </nav>
+  </div>
+</nav>

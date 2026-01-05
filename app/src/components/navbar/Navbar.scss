@@ -1,4 +1,6 @@
 navbar {
+	z-index: 2;
+	position: relative;
 
 	nav {
 		margin-top: -8px;
@@ -10,7 +12,8 @@ navbar {
 		align-items: center;
 		justify-content: space-evenly;
 		border-bottom: 1px solid var(--outline);
-		background-color: #1b2142; // Navy background
+		background-color: #1b21426e; // Navy background
+		
 
 		.navbar-logo i {
 			font-size: large;
@@ -45,5 +48,4 @@ navbar {
 			}
 		}
 	}
-
 }
