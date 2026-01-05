@@ -31,12 +31,12 @@ export class TVShowPage implements IRouteViewModel {
 
 	public async moreSimilar() {
 		if (!this.similar) {
-			this.similar = await this.tmdb.tvShows.similar(this.tvshowId);
+			this.similar = await this.tmdb.tvShows.recommendations(this.tvshowId); // similar(this.tvshowId);
 			this.logger.debug('Loaded similar TV shows:', this.similar);
 			return;
 		}
 		const nextPage = this.similar.page + 1;
-		const newSimilar = await this.tmdb.tvShows.similar(this.tvshowId, { page: nextPage });
+		const newSimilar = await this.tmdb.tvShows.recommendations(this.tvshowId, { page: nextPage }); // similar(this.tvshowId, { page: nextPage });
 		this.similar.results.push(...newSimilar.results);
 		this.similar.page = newSimilar.page;
 		this.similar.total_pages = newSimilar.total_pages;

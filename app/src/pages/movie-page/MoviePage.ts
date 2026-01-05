@@ -25,7 +25,8 @@ export class MoviePage implements IRouteViewModel {
 		this.movieId = parseInt(params.id ?? '');
 		this.movie = await this.tmdb.movies.details(this.movieId);
 		this.logger.debug('Loaded movie details:', this.movie);
-		this.similar = await this.tmdb.movies.similar(this.movieId);
+		// this.similar = await this.tmdb.movies.similar(this.movieId);
+		this.similar = await this.tmdb.movies.recommendations(this.movieId);
 		this.logger.debug('Loaded similar movies:', this.similar);
 	}
 
