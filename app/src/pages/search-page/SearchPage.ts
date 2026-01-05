@@ -1,5 +1,5 @@
 import { route } from "@aurelia/router";
-import { ILogger, inject, observable, resolve } from "aurelia";
+import { ILogger, inject, observable, resolve, watch } from "aurelia";
 import { MoviePage } from "../movie-page/MoviePage";
 import { AppState } from "src/core/state/AppState";
 import { AppAction } from "src/core/state/AppHandler";
@@ -8,7 +8,7 @@ import { fromState, IStore } from "@aurelia/state";
 import { Session } from "@supabase/supabase-js";
 import { WatchState } from "src/core/WatchState";
 import { MediaKind, MediaUserData } from "src/core/MediaUserData";
-import { Movie, MovieItem, SearchMultiSearchFilters, SearchMultiSearchResponse, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
+import { LanguageCode, Movie, MovieItem, SearchMultiSearchFilters, SearchMultiSearchResponse, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
 
 export class Range {
 	min: number | null = null;
@@ -56,12 +56,25 @@ const filterSorts: FilterSort[] = [
 	},
 ]
 
+export class TMDBSearchFilters {
+	query: string = '';
+	format: MediaKind | 'all' = 'all';
+	language?: LanguageCode = 'en-US';
+	include_adult: boolean = false;
+	year?: number;
+}
+
 @route({
 	id: 'search',
 	path: ['search'],
 	title: 'Search',
 })
 @inject(IStore)
+@watch('filter.query', 'search', { flush: 'async'})
+@watch('filter.format', 'search', { flush: 'async'})
+@watch('filter.language', 'search', { flush: 'async'})
+@watch('filter.include_adult', 'search', { flush: 'async'})
+@watch('filter.year', 'search', { flush: 'async'})
 export class SearchPage {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('SearchPage');
 	private readonly supabase: SupabaseService = resolve(SupabaseService);
@@ -73,57 +86,63 @@ export class SearchPage {
 	@observable
 	public mediaUserDataMap!: Record<string, MediaUserData> | null;
 
+	private searchEle: HTMLInputElement | null = null;
 
-	private searchQuery: string = '';
-	private filterYear: number | undefined = undefined;
-	private filterIncludeAdult: boolean = true;
-	private filterFormat: MediaKind | 'all' = 'all'; // 'all' | 'tvshow' | 'movie' = 'all'; // tv show, movie, tv short, special, ova, ona, music
+	// #region Values
+	// private searchQuery: string = '';
+	// private filterYear: number | undefined = undefined;
+	// private filterIncludeAdult: boolean = true;
+	// private filterFormat: MediaKind | 'all' = 'all'; // 'all' | 'tvshow' | 'movie' = 'all'; // tv show, movie, tv short, special, ova, ona, music
 
-	// private filterYear: Range = new Range();
-	private filterSeason: 'winter' | 'spring' | 'summer' | 'fall' | undefined = undefined;
-	private filterAiringStatus: 'airing' | 'finished' | 'not_yet_aired' | 'cancelled' | undefined = undefined;
-	private filterEpisodeCount: Range = new Range();
-	private filterCountryOfOrigin: string | undefined = undefined;
-	private filterGenres: string[] = [];
-	// private filterSortBy: 'popularity' | 'release_date' | 'revenue' | 'primary_release_date' | 'original_title' | 'vote_average' | 'vote_count' = 'popularity';
+	// // private filterYear: Range = new Range();
+	// private filterSeason: 'winter' | 'spring' | 'summer' | 'fall' | undefined = undefined;
+	// private filterAiringStatus: 'airing' | 'finished' | 'not_yet_aired' | 'cancelled' | undefined = undefined;
+	// private filterEpisodeCount: Range = new Range();
+	// private filterCountryOfOrigin: string | undefined = undefined;
+	// private filterGenres: string[] = [];
+	// // private filterSortBy: 'popularity' | 'release_date' | 'revenue' | 'primary_release_date' | 'original_title' | 'vote_average' | 'vote_count' = 'popularity';
+	// #endregion Values
 	private filterSortBy: FilterSort = filterSorts[0];
+	private filter: TMDBSearchFilters = new TMDBSearchFilters();
+	private debounceTimeout: NodeJS.Timeout | null = null;
 
 
-	// private results: Array<Movie | TVShow> = [];
-	// private results: SearchMultiSearchResponse | null = null;
 	private results: TMDBResponseList<Array<MediaUserDataKind & { details: (TVShowItem | MovieItem) }>> | null = null;
 
 
 	public constructor(private readonly store: IStore<AppState, AppAction>) {
 	}
 
-	public async search() {
-		// let res = await this.tmdb.search.multiSearch(this.query);
-
-		this.results = null;
-		await this.searchMore();
-
-		this.logger.debug('Search results:', this.results);
+	public attached() {
+		this.searchEle.focus();
 	}
 
-	public get includeMovies(): boolean {
-		return this.filterFormat === 'all' || this.filterFormat == MediaKind.Movie;
-	}
-	public get includeTVShows(): boolean {
-		return this.filterFormat === 'all' || this.filterFormat == MediaKind.TVShow;
+	public search() {
+		if (!this.filter.query || this.filter.query.trim() === '') {
+			this.results = null;
+			return;
+		}
+		// Clear the previous timer
+		if (this.debounceTimeout) {
+			clearTimeout(this.debounceTimeout);
+		}
+		// Start a new debounce timer
+		this.debounceTimeout = setTimeout(() => {
+			this.results = null;
+			this.searchMore(); // Call the search function
+		}, 300); // Wait 300ms after the user stops typing
 	}
 
-
-	public async searchMore() {
+	private async searchMore() {
 		const nextPage = (this.results?.page || 0) + 1;
-		this.logger.debug('Searching more, page', nextPage, this.searchQuery, this.filterFormat, this.includeMovies, this.includeTVShows);
+		this.logger.debug('Searching more, page', nextPage, this.filter.query, this.filter.format, this.includeMovies, this.includeTVShows);
 
 		let tvs = this.includeTVShows ? await this.tmdb.search.tvShows({
-			query: this.searchQuery,
+			query: this.filter.query,
 			page: nextPage,
 			// first_air_date_year: this.filterYear,
-			include_adult: this.filterIncludeAdult,
-			language: 'en-US',
+			include_adult: this.filter.include_adult,
+			language: this.filter.language,
 		}) : { page: 1, results: [], total_pages: 1, total_results: 0 };
 		const tvResults = tvs.results.map(tvshow => {
 			return {
@@ -133,11 +152,11 @@ export class SearchPage {
 		})
 
 		let movies = this.includeMovies ? await this.tmdb.search.movies({
-			query: this.searchQuery,
+			query: this.filter.query,
 			page: nextPage,
 			// primary_release_year: this.filterYear,
-			include_adult: this.filterIncludeAdult,
-			language: 'en-US',
+			include_adult: this.filter.include_adult,
+			language: this.filter.language,
 		}) : { page: 1, results: [], total_pages: 1, total_results: 0 };
 		const movieResults = movies.results.map(movie => {
 			return {
@@ -165,11 +184,12 @@ export class SearchPage {
 		}
 	}
 
-	// public get query(): SearchMultiSearchFilters {
-	// 	return {
-	// 		query: this.searchQuery,
-	// 		page: 1,
-	// 	};
-	// }
+
+	public get includeMovies(): boolean {
+		return this.filter.format === 'all' || this.filter.format == MediaKind.Movie;
+	}
+	public get includeTVShows(): boolean {
+		return this.filter.format === 'all' || this.filter.format == MediaKind.TVShow;
+	}
 
 }
