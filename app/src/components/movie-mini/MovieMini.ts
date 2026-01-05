@@ -9,7 +9,7 @@ import { SupabaseService } from "src/core/services/SupabaseService";
 import { AppState } from "src/core/state/AppState";
 import { AvailableButtonsPerWatchState, ResetButtonMap, SetPlanToWatchButton, WatchState, WatchStateButton } from "src/core/WatchState";
 import { MoviePage } from "src/pages/movie-page/MoviePage";
-import { TvShowPage } from "src/pages/tvshow-page/TvShowPage";
+import { TvShowPage } from "src/pages/tvshow-page1/TvShowPage";
 
 export class MovieMini {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MovieMini');

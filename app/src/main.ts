@@ -23,7 +23,7 @@ import { AuthModule } from './components/auth-module/AuthModule';
 import { AuthSignin } from './components/auth-module/auth-signin/AuthSignin';
 import { Navbar } from './components/navbar/Navbar';
 import { CallbackPage } from './pages/callback/CallbackPage';
-import { TvShowPage } from './pages/tvshow-page/TvShowPage';
+import { TvShowPage } from './pages/tvshow-page1/TvShowPage';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
   auth: {
