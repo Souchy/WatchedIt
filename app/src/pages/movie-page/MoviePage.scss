@@ -44,13 +44,15 @@ movie-page {
 				1px 1px 3px black,
 			;
 		}
+
 		.details-info {
 			max-width: 40rem;
 			// backdrop-filter: blur(4px);
 		}
+
+		>figure {
+			margin: 0px;
+		}
 	}
 
-	>figure {
-		margin: 0px;
-	}
 }
