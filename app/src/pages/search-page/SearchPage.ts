@@ -25,32 +25,35 @@ export class Range {
 }
 
 export type MediaUserDataKind = Pick<MediaUserData, 'kind'>;
+
+type Media = MediaUserDataKind & { details: (TVShowItem | MovieItem) };
+
 export type FilterSort = {
 	value: string;
 	label: string;
-	function: (a: MovieItem | TVShowItem, b: MovieItem | TVShowItem) => number;
+	function: (a: Media, b: Media) => number;
 };
-const filterSorts: FilterSort[] = [
+export const filterSorts: FilterSort[] = [
 	{
 		value: 'popularity',
 		label: 'Popularity',
-		function: (a: MovieItem | TVShowItem, b: MovieItem | TVShowItem) => {
-			return (b.popularity! - a.popularity!);
+		function: (a: Media, b: Media) => {
+			return (b.details.popularity! - a.details.popularity!);
 		}
 	},
 	{
 		value: 'vote_average',
 		label: 'Average Vote',
-		function: (a: MovieItem | TVShowItem, b: MovieItem | TVShowItem) => {
-			return (b.vote_average! - a.vote_average!);
+		function: (a: Media, b: Media) => {
+			return (b.details.vote_average! - a.details.vote_average!);
 		}
 	},
 	{
 		value: 'release_date',
 		label: 'Release Date',
-		function: (a: MovieItem | TVShowItem, b: MovieItem | TVShowItem) => {
-			const dateA = 'first_air_date' in a ? a.first_air_date : a.release_date;
-			const dateB = 'first_air_date' in b ? b.first_air_date : b.release_date;
+		function: (a: Media, b: Media) => {
+			const dateA = 'first_air_date' in a.details ? a.details.first_air_date : a.details.release_date;
+			const dateB = 'first_air_date' in b.details ? b.details.first_air_date : b.details.release_date;
 			return (dateB || '').localeCompare(dateA || '');
 		}
 	},
@@ -173,7 +176,7 @@ export class SearchPage {
 			};
 		});
 
-		const newResults = [...tvResults, ...movieResults].sort((a, b) => this.filterSortBy.function(a.details, b.details));
+		const newResults = [...tvResults, ...movieResults].sort(this.filterSortBy.function);
 
 		if (!this.results) {
 			this.results = {

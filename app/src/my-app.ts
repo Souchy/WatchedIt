@@ -8,9 +8,9 @@ import { ILogger, inject, resolve } from 'aurelia';
 import { AppState } from './core/state/AppState';
 import { AppAction } from './core/state/AppHandler';
 import { SupabaseService } from './core/services/SupabaseService';
-import { CallbackPage } from './pages/callback/CallbackPage';
 import { SearchPage } from './pages/search-page/SearchPage';
 import { TvShowPage } from './pages/tvshow-page/TvShowPage';
+import { MyListPage } from './pages/my-list-page/MyListPage';
 
 @route({
   routes: [
@@ -23,28 +23,7 @@ import { TvShowPage } from './pages/tvshow-page/TvShowPage';
     MoviePage,
     TvShowPage,
     SearchPage,
-    CallbackPage
-    // {
-    //   path: ['', 'home'],
-    //   id: 'home', title: 'Home',
-    //   viewport: 'default',
-    //   component: import('./pages/home-page/HomePage'),
-    //   // routes: [
-    //   //   MoviePage
-    //   // ]
-    // },
-    // {
-    //   path: 'about',
-    //   id: 'about', title: 'About',
-    //   viewport: 'default',
-    //   component: import('./pages/about-page'),
-    // },
-    // {
-    //   path: 'movie/:id',
-    //   id: 'movie', title: 'Movie',
-    //   viewport: 'default',
-    //   component: import('./pages/movie-page/movie-page'),
-    // },
+    MyListPage
   ],
   fallback: MissingPage,
 })
@@ -54,25 +33,5 @@ export class MyApp {
 
   public constructor(private readonly store: IStore<AppState, AppAction>, private supabase: SupabaseService) {
   }
-
-  async attached() {
-    // TODO: Sign in silently if possible
-    this.logger.trace('MyApp activated', this.store, this.supabase);
-    // await this.supabase.supabaseClient.auth.signInWithOAuth
-
-    // let res = await this.supabase.supabaseClient.auth.signInWithOAuth({
-    //   provider: 'azure',
-    //   options: {
-    //     redirectTo: window.location.origin,
-    //   }
-    // });
-    // this.logger.debug('Supabase OAuth Sign-In Result:', res);
-
-    // await this.supabase.fetchMediaUserDataMap();
-  }
-
-  // public dispose() {
-  //   this.supabase.dispose();
-  // }
 
 }

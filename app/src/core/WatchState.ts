@@ -103,3 +103,18 @@ export const ResetButtonMap: Map<WatchState, WatchStateButton> = new Map([
 	[WatchState.OnHold, ResetOnHoldButton],
 	[WatchState.Dropped, ResetDroppedButton],
 ]);
+
+
+
+// export class WatchStateData {
+// 	public watchState: WatchState;
+// 	public label: string;
+// }
+// export const WatchStateDataMap: Map<WatchState, WatchStateData> = new Map([
+// 	[WatchState.Unlisted, { watchState: WatchState.Unlisted, label: 'Unlisted' }],
+// 	[WatchState.PlanToWatch, { watchState: WatchState.PlanToWatch, label: 'Plan to Watch' }],
+// 	[WatchState.Watching, { watchState: WatchState.Watching, label: 'Watching' }],
+// 	[WatchState.Completed, { watchState: WatchState.Completed, label: 'Completed' }],
+// 	[WatchState.OnHold, { watchState: WatchState.OnHold, label: 'On Hold' }],
+// 	[WatchState.Dropped, { watchState: WatchState.Dropped, label: 'Dropped' }],
+// ]);

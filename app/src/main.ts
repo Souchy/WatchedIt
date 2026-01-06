@@ -2,7 +2,6 @@ import Aurelia, { AppTask, ConsoleSink, IContainer, LoggerConfiguration, LogLeve
 import { RouterConfiguration } from '@aurelia/router';
 import { MyApp } from './my-app';
 import { TrendingMovies } from './pages/trending-movies/TrendingMovies';
-import { RelatedMovies } from './pages/related-movies/RelatedMovies';
 import * as SouchyAu from 'souchy.au';
 import 'souchy.au/styles.css';
 import { MovieMini } from './components/movie-mini/MovieMini';
@@ -24,6 +23,7 @@ import { AuthSignin } from './components/auth-module/auth-signin/AuthSignin';
 import { Navbar } from './components/navbar/Navbar';
 import { CallbackPage } from './pages/callback/CallbackPage';
 import { TvShowPage } from './pages/tvshow-page/TvShowPage';
+import { MyListPage } from './pages/my-list-page/MyListPage';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
   auth: {
@@ -102,8 +102,8 @@ au.register(Registration.singleton(SupabaseService, SupabaseService));
 au.register(Registration.instance(GenresMap, genresMap));
 // Components
 au.register(SouchyAu);
-au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage, CallbackPage, TvShowPage);
-au.register(TrendingMovies, RelatedMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar);
+au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage, CallbackPage, TvShowPage, MyListPage);
+au.register(TrendingMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar);
 
 
 await au.app(MyApp).start();

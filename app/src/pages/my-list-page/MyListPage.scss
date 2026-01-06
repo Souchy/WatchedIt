@@ -1,0 +1,21 @@
+my-list-page {
+	display: flex;
+	flex-direction: row;
+	margin: 2rem;
+	gap: 2rem;
+
+	>.filters {
+		display: flex;
+		flex-direction: column;
+		gap: 1rem;
+
+		>section {
+			width: 100%;
+		}
+	}
+
+
+	.list {
+		flex-grow: 1;
+	}
+}

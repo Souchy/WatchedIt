@@ -4,14 +4,17 @@
     <header>Search</header>
     <input type="search" class="textSearch" ref="searchEle" value.bind="filter.query" autofocus placeholder="Search movies, TV shows or people" aria-label="Search movies and TV shows" autocomplete="off" />
   </section>
+  <section>
+    <header>List Type</header>
+    <select value.bind="filter.list">
+      <option repeat.for="opt of watchStateOptions" value.bind="opt.value">${opt.label}</option>
+    </select>
+  </section>
 
   <section>
     <header>Format</header>
     <select value.bind="filter.format">
-      <option value="all">All</option>
-      <option value="0">Movies</option>
-      <option value="1">TV Shows</option>
-      <option value="2">People</option>
+      <option repeat.for="opt of formatOptions" value.bind="opt.value">${opt.label}</option>
     </select>
   </section>
 
@@ -30,10 +33,11 @@
     <button class="btnReset" click.trigger="resetFilter()">x</button>
   </section>
 
-
   <!-- <button id="searchBtn" type="submit" class="btn-primary" click.trigger="search()">Search</button> -->
 </div>
 
 
-<movie-list medias.bind="results.results"></movie-list>
-<button if.bind="results" click.trigger="searchMore()">Load more</button>
+<div class="list">
+  <movie-list medias.bind="filteredMediaUserDataCache.results"></movie-list>
+  <!-- <button if.bind="results" click.trigger="searchMore()">Load more</button> -->
+</div>
