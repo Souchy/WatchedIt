@@ -11,6 +11,7 @@ import { SupabaseService } from './core/services/SupabaseService';
 import { SearchPage } from './pages/search-page/SearchPage';
 import { TvShowPage } from './pages/tvshow-page/TvShowPage';
 import { MyListPage } from './pages/my-list-page/MyListPage';
+import { PersonPage } from './pages/person-page/PersonPage';
 
 @route({
   routes: [
@@ -22,8 +23,9 @@ import { MyListPage } from './pages/my-list-page/MyListPage';
     },
     MoviePage,
     TvShowPage,
+    PersonPage,
     SearchPage,
-    MyListPage
+    MyListPage,
   ],
   fallback: MissingPage,
 })

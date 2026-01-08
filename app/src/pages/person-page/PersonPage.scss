@@ -1,0 +1,31 @@
+person-page {
+	// margin: 40px;
+	// display: block;
+	// >figure {
+	// 	margin: 0;
+	// }
+
+	.details {
+		display: flex;
+		flex-direction: row;
+		gap: 2rem;
+	}
+	
+	>header,
+	>section {
+		margin: 40px;
+
+		// z-index: 3;
+		p {
+			text-shadow:
+				// none
+				1px 1px 2px black,
+				1px 1px 3px black,
+			;
+		}
+
+		>figure {
+			margin: 0px;
+		}
+	}
+}

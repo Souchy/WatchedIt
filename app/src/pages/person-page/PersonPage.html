@@ -1,0 +1,33 @@
+<!-- <img class="backdrop" src.bind="backdropUrl" alt.bind="`Backdrop for ${title}`" /> -->
+
+<header class="overdrop">
+  <h1>${title} (${birthYear})</h1>
+</header>
+<section class="details">
+  <figure class="poster">
+    <img src.bind="posterUrl" alt.bind="`Poster for ${person.name}`" />
+  </figure>
+  <div class="details-info">
+    <p><strong>Release Date:</strong> ${birthday}</p>
+	<header><h2>Biography</h2></header>
+    <p>${person.biography}</p>
+  </div>
+</section>
+
+<section>
+  <h2>As cast</h2>
+  <movie-list medias.bind="castList" size.bind="120" max.bind="castListMax"></movie-list>
+  <button if.bind="isShowMoreCastVisible" click.trigger="showMoreCast()">Show More</button>
+</section>
+
+<section>
+  <h2>As crew</h2>
+  <movie-list medias.bind="crewList" size.bind="120" max.bind="crewListMax"></movie-list>
+  <button if.bind="isShowMoreCrewVisible" click.trigger="showMoreCrew()">Show More</button>
+</section>
+
+<!-- <section>
+  <h2>Credits</h2>
+  <movie-list medias.bind="bestKnownForList" size.bind="120" max.bind="bestKnownForListMax"></movie-list>
+  <button if.bind="isShowMoreCreditsVisible" click.trigger="showMoreCredits()">Show More</button>
+</section> -->
