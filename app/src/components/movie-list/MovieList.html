@@ -1,11 +1,11 @@
 <ul class="movie-list" style.bind="`grid-template-columns: ${columnStyle}`">
-  <li repeat.for="movie of movies?.results">
+  <li repeat.for="movie of movies?.results" if.bind="!max || $index < max">
     <movie-mini movie.bind="movie" size.bind="size"></movie-mini>
   </li>
-  <li repeat.for="show of shows?.results">
+  <li repeat.for="show of shows?.results" if.bind="!max || $index < max">
     <movie-mini tvshow.bind="show" size.bind="size"></movie-mini>
   </li>
-  <li repeat.for="item of medias">
+  <li repeat.for="item of medias" if.bind="!max || $index < max">
     <movie-mini if.bind="item.kind == 0" movie.bind="item.details" size.bind="size"></movie-mini>
     <movie-mini if.bind="item.kind == 1" tvshow.bind="item.details" size.bind="size"></movie-mini>
   </li>
