@@ -160,6 +160,13 @@ movie-mini {
 					overflow: hidden;
 					text-overflow: ellipsis;
 				}
+
+				p.subtitle {
+					margin: 0;
+					margin-top: 0.1rem;
+					font-size: 0.9rem;
+					color: var(--muted-color);
+				}
 			}
 
 

@@ -1,4 +1,3 @@
-<!-- <template> -->
 
 <article>
 
@@ -17,6 +16,8 @@
   <section class="title-bar">
     <a load="route.bind: route; params.bind: {id: id}; context.bind: null" aria-label.bind="`View details for ${title}`">
       <header class="title">${title}</header>
+      <p class="subtitle" if.bind="media.job">${media.job}</p>
+      <p class="subtitle" if.bind="media.character">${media.character}</p>
     </a>
     <!-- <span class="rating">⭐ ${voteAverage.toFixed(1)}</span> -->
     <!-- Set unlisted -->
@@ -32,11 +33,8 @@
       <!-- <i class="fi fi-sc-pencil"></i> -->
       <!-- <i class="fi fi-ts-pen-circle"></i> -->
     <!-- </button> -->
-
     <button repeat.for="btn of availableWatchStateButtons" click.trigger="clickWatchStateButton(btn)" aria-label.bind="btn.ariaLabel" title.bind="btn.ariaLabel">
       <i class.bind="btn.iconClass"></i>
     </button>
   </section>
 </article>
-
-<!-- </template> -->
