@@ -24,6 +24,8 @@ import { Navbar } from './components/navbar/Navbar';
 import { CallbackPage } from './pages/callback/CallbackPage';
 import { TvShowPage } from './pages/tvshow-page/TvShowPage';
 import { MyListPage } from './pages/my-list-page/MyListPage';
+import { CastList } from './components/cast-list/CastList';
+import { CrewList } from './components/crew-list/CrewList';
 import { PersonPage } from './pages/person-page/PersonPage';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
@@ -103,8 +105,8 @@ au.register(Registration.singleton(SupabaseService, SupabaseService));
 au.register(Registration.instance(GenresMap, genresMap));
 // Components
 au.register(SouchyAu);
-au.register(TrendingMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar);
 au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage, CallbackPage, TvShowPage, MyListPage, PersonPage);
+au.register(TrendingMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar, CastList, CrewList);
 
 
 await au.app(MyApp).start();

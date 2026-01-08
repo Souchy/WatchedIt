@@ -1,0 +1,15 @@
+<ul style.bind="`grid-template-columns: ${columnStyle}`">
+  <li repeat.for="person of cast" if.bind="$index < max">
+    <a load="route: person; params.bind: {id: person.id}; context.bind: null" aria-label.bind="`View details for ${person.name}`">
+      <figure>
+        <img src.bind="`https://image.tmdb.org/t/p/w200${person.profile_path}`" alt.bind="`Profile picture of ${person.name}`" />
+        <figcaption>
+          <p>${person.name}</p>
+          <p>${person.character}</p>
+        </figcaption>
+      </figure>
+    </a>
+  </li>
+</ul>
+
+<button if.bind="isShowMoreVisible" click.trigger="showMore()">Show More</button>

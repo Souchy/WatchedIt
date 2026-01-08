@@ -1,6 +1,6 @@
 import { ILogger, resolve } from "aurelia";
 import { IRouteViewModel, Params, route, RouteNode } from '@aurelia/router';
-import { Movie, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
+import { Movie, MovieCreditsResponse, TMDB, TMDBResponseList, TVShow, TVShowCreditsResponse, TVShowItem } from "@leandrowkz/tmdb";
 
 
 @route({
@@ -15,7 +15,7 @@ export class TvShowPage implements IRouteViewModel {
 	private tvshowId: number;
 	private tvshow: TVShow;
 	private similar: TMDBResponseList<TVShowItem[]> | null = null;
-
+	private credits: TVShowCreditsResponse | null = null;
 
 	canLoad(params: Params) {
 		this.tvshowId = parseInt(params.id ?? '');
@@ -27,6 +27,10 @@ export class TvShowPage implements IRouteViewModel {
 		this.tvshow = await this.tmdb.tvShows.details(this.tvshowId);
 		this.logger.debug('Loaded TV show details:', this.tvshow);
 		await this.moreSimilar();
+		this.credits = await this.tmdb.tvShows.credits(this.tvshowId);
+		// this.credits.cast.sort((a, b) => a.order - b.order);
+		this.credits.crew.sort((a, b) => b.popularity - a.popularity);
+		this.logger.debug('Loaded TV show credits:', this.credits);
 	}
 
 	public async moreSimilar() {

@@ -16,7 +16,17 @@
 </section>
 
 <section>
-  <h2>Similar Movies</h2>
+  <h2>Recommended Movies</h2>
   <movie-list movies.bind="similar" size.bind="120"></movie-list>
   <button click.trigger="moreSimilar()">Load More</button>
+</section>
+
+<section>
+  <h2>Cast</h2>
+  <cast-list cast.bind="credits.cast" size.bind="80"></cast-list>
+</section>
+
+<section>
+  <h2>Crew</h2>
+  <crew-list crew.bind="credits.crew" size.bind="80"></crew-list>
 </section>

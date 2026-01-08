@@ -1,0 +1,61 @@
+// cast-list {
+// 	display: flex;
+// 	flex-wrap: wrap;
+// 	flex-direction: row;
+// 	gap: 1rem;
+// }
+
+/* Grid container for the movie minis */
+crew-list {
+	ul {
+		display: grid;
+		gap: var(--gap);
+		margin: 0;
+		padding: 0;
+		list-style: none;
+
+		a {
+
+			display: block;
+			color: inherit;
+			text-decoration: none;
+			outline: none;
+			width: 100%;
+
+			figure {
+				width: 100%;
+				margin: 0;
+
+				img {
+					width: 100%;
+					border-radius: var(--card-radius);
+				}
+
+
+				figcaption {
+					margin: 0.6rem 0 0.4rem;
+					font-size: 1rem;
+					line-height: 1.15;
+					// padding: 0;
+					color: var(--text-color);
+					display: -webkit-box;
+					// -webkit-line-clamp: 2;
+					-webkit-box-orient: vertical;
+					
+					// overflow: hidden;
+					// text-overflow: ellipsis;
+					
+					p {
+						margin: 0;
+					}
+
+					:last-child {
+						margin-top: 0.1rem;
+						font-size: 0.9rem;
+						color: var(--muted-color);
+					}
+				}
+			}
+		}
+	}
+}
