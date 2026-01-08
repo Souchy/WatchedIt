@@ -107,6 +107,10 @@ export class MyListPage {
 		// this.search();
 	}
 
+	public get foundCount() {
+		return this.filteredMediaUserDataCache?.results.length ?? 0;
+	}
+
 	public get watchStateOptions() {
 		return WatchStateFilterOptions;
 	}
@@ -197,6 +201,9 @@ export class MyListPage {
 			}
 			if (!item.kind && item.kind !== MediaKind.Movie && item.kind !== MediaKind.TVShow) {
 				this.logger.warn(`searchMore: item for key ${key} has invalid kind (${item.kind}), skipping.`);
+				continue;
+			}
+			if (item.state == WatchState.Unlisted) {
 				continue;
 			}
 			// Apply filters
