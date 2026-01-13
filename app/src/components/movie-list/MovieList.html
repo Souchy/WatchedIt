@@ -9,4 +9,9 @@
     <movie-mini if.bind="item.kind == 0" movie.bind="item.details" size.bind="size"></movie-mini>
     <movie-mini if.bind="item.kind == 1" tvshow.bind="item.details" size.bind="size"></movie-mini>
   </li>
+  <li repeat.for="item of items.results" if.bind="!max || $index < max">
+    <movie-mini if.bind="item.media_type == 'movie'" movie.bind="item" size.bind="size"></movie-mini>
+    <movie-mini else if.bind="item.media_type == 'tv'" tvshow.bind="item" size.bind="size"></movie-mini>
+    <!-- <movie-mini else person.bind="item" size.bind="size"></movie-mini> -->
+  </li>
 </ul>

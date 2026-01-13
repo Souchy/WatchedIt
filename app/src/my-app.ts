@@ -12,6 +12,7 @@ import { SearchPage } from './pages/search-page/SearchPage';
 import { TvShowPage } from './pages/tvshow-page/TvShowPage';
 import { MyListPage } from './pages/my-list-page/MyListPage';
 import { PersonPage } from './pages/person-page/PersonPage';
+import { NewsPage } from './pages/news-page/NewsPage';
 
 @route({
   routes: [
@@ -26,6 +27,7 @@ import { PersonPage } from './pages/person-page/PersonPage';
     PersonPage,
     SearchPage,
     MyListPage,
+    NewsPage
   ],
   fallback: MissingPage,
 })

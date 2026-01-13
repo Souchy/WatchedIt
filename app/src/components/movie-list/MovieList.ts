@@ -1,6 +1,8 @@
-import { Movie, MovieItem, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
+import { Movie, MovieItem, TMDBResponseList, TVShow, TVShowItem, PersonItem } from "@leandrowkz/tmdb";
 import { bindable, ILogger, resolve } from "aurelia";
 import { MediaUserData } from "src/core/MediaUserData";
+
+export type MediaList = (MovieItem | TVShowItem | PersonItem)[];
 
 export class MovieList {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MovieList');
@@ -8,9 +10,10 @@ export class MovieList {
 	@bindable movies: TMDBResponseList<MovieItem[]> | null = null;
 	@bindable shows: TMDBResponseList<TVShowItem[]> | null = null;
 	@bindable medias: Array<MediaUserData & { details: Movie | TVShow }> | null = null;
+	@bindable items: TMDBResponseList<MediaList> | null = null;
 	@bindable size: number = 150; // px width for poster
 	@bindable max: number | null = null; // max items to show
-	
+
 	public get columnStyle() {
 		return `repeat(auto-fill, minmax(${this.size}px, 1fr))`;
 	}
