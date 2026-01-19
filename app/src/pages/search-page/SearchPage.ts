@@ -1,6 +1,6 @@
 import { route } from "@aurelia/router";
 import { ILogger, inject, observable, resolve, watch } from "aurelia";
-import { MoviePage } from "../movie-page/MoviePage";
+import { MoviePage } from "../media-page/movie-page/MoviePage";
 import { AppState } from "src/core/state/AppState";
 import { AppAction } from "src/core/state/AppHandler";
 import { SupabaseService } from "src/core/services/SupabaseService";
@@ -160,6 +160,18 @@ export class SearchPage {
 				details: tvshow,
 			};
 		})
+
+		// this.tmdb.discover.movies({
+		// 	sort_by: 'popularity.desc',
+		// 	page: 1,
+		// 	primary_release_year: 2020,
+		// 	"primary_release_date.gte": '2020-01-01',
+		// 	"primary_release_date.lte": '2020-12-31',
+		// 	with_genres: ['28', '12'],
+		// 	with_people: ['500', '600'],
+		// 	with_cast: ['500', '600'],
+		// 	with_crew: ['500', '600'],
+		// })
 
 		let movieFilter: SearchMoviesFilters = {
 			query: this.filter.query,

@@ -1,6 +1,6 @@
 import { route } from "@aurelia/router";
 import { ILogger, inject, observable, resolve, watch } from "aurelia";
-import { MoviePage } from "../movie-page/MoviePage";
+import { MoviePage } from "../media-page/movie-page/MoviePage";
 import { AppState } from "src/core/state/AppState";
 import { AppAction } from "src/core/state/AppHandler";
 import { SupabaseService } from "src/core/services/SupabaseService";
