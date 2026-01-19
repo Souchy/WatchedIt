@@ -64,7 +64,7 @@ export class MoviePage implements IRouteViewModel {
 
 	public get posterUrl(): string {
 		if (this.movie.poster_path) {
-			return `https://image.tmdb.org/t/p/w200${this.movie.poster_path}`;
+			return `https://image.tmdb.org/t/p/w300${this.movie.poster_path}`;
 		}
 		return '';
 	}
@@ -120,6 +120,13 @@ export class MoviePage implements IRouteViewModel {
 		}).then(success => {
 			this.logger.debug(`Supabase updateMediaUserData completed for kind ${this.mediaKind}, ID: ${this.media.id} with success: ${success} and watchstate: ${value}`);
 		});
+	}
+	//#endregion
+
+	
+	//#region Actions
+	private clickWatchStateButton(btn: WatchStateButton) {
+		this.watchState = btn.setWatchState;
 	}
 	//#endregion
 
