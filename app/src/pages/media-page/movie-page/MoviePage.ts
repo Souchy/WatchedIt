@@ -1,6 +1,13 @@
 import { ILogger, resolve } from "aurelia";
 import { IRouteViewModel, Params, route, RouteNode } from '@aurelia/router';
-import { Movie, MovieCreditsResponse, MovieItem, TMDB, TMDBResponseList } from "@leandrowkz/tmdb";
+import { Movie, MovieCreditsResponse, MovieItem, TMDB, TMDBResponseList, TVShow } from "@leandrowkz/tmdb";
+import { fromState } from "@aurelia/state";
+import { AppState } from "src/core/state/AppState";
+import { Session } from "@supabase/supabase-js";
+import { MediaKind, MediaUserData } from "src/core/MediaUserData";
+import { AvailableButtonsPerWatchState, ResetButtonMap, WatchState, WatchStateButton } from "src/core/WatchState";
+import { SupabaseService } from "src/core/services/SupabaseService";
+import { GenresMap } from "src/core/Genres";
 
 
 @route({
@@ -11,11 +18,18 @@ import { Movie, MovieCreditsResponse, MovieItem, TMDB, TMDBResponseList } from "
 export class MoviePage implements IRouteViewModel {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MoviePage');
 	private readonly tmdb = resolve(TMDB);
+	private readonly supabase = resolve(SupabaseService);
+	private readonly genresMap = resolve(GenresMap);
 
 	private movieId: number;
 	private movie: Movie;
 	private similar: TMDBResponseList<MovieItem[]> | null = null;
 	private credits: MovieCreditsResponse | null = null;
+
+	@fromState((state: AppState) => state.session)
+	public session: Session | null = null;
+	@fromState((state: AppState) => state.mediaUserDataMap)
+	public dataMap!: Record<number, MediaUserData> | null;
 
 	canLoad(params: Params) {
 		this.movieId = parseInt(params.id ?? '');
@@ -32,7 +46,7 @@ export class MoviePage implements IRouteViewModel {
 		this.credits.crew.sort((a, b) => b.popularity - a.popularity);
 		this.logger.debug('Loaded movie credits:', this.credits);
 	}
-	
+
 	public async moreSimilar() {
 		if (!this.similar) {
 			this.similar = await this.tmdb.movies.recommendations(this.movieId);
@@ -76,5 +90,37 @@ export class MoviePage implements IRouteViewModel {
 	public get overview(): string {
 		return this.movie.overview;
 	}
+
+	// For when we go to MediaPage instead of MoviePage
+	public get mediaKind(): MediaKind {
+		return this.movie ? MediaKind.Movie : MediaKind.TVShow;
+	}
+	public get media(): Movie | TVShow {
+		return this.movie //|| this.tvshow;
+	}
+
+	//#region State properties
+	public get availableWatchStateButtons(): WatchStateButton[] {
+		if (!this.session)
+			return [];
+		return AvailableButtonsPerWatchState[this.watchState];
+	}
+	public get resetWatchStateButton(): WatchStateButton | null {
+		return ResetButtonMap.get(this.watchState);
+	}
+	public get watchState(): WatchState {
+		return this.dataMap && this.dataMap[this.media.id]
+			? this.dataMap[this.media.id].state
+			: WatchState.Unlisted;
+	}
+	public set watchState(value: WatchState) {
+		this.logger.debug(`Watch state changed to: ${value} for media ID: ${this.media.id}`);
+		this.supabase.updateMediaUserData(this.media.id, this.mediaKind, {
+			state: value,
+		}).then(success => {
+			this.logger.debug(`Supabase updateMediaUserData completed for kind ${this.mediaKind}, ID: ${this.media.id} with success: ${success} and watchstate: ${value}`);
+		});
+	}
+	//#endregion
 
 }

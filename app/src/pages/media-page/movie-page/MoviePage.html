@@ -8,6 +8,11 @@
     <img src.bind="posterUrl" alt.bind="`Poster for ${movie.title}`" />
   </figure>
   <div class="details-info">
+    <div>
+      <button repeat.for="btn of availableWatchStateButtons" click.trigger="clickWatchStateButton(btn)" aria-label.bind="btn.ariaLabel" title.bind="btn.ariaLabel">
+        <i class.bind="btn.iconClass"></i>
+      </button>
+    </div>
     <p><strong>Release Date:</strong> ${releaseDate}</p>
     <p><strong>Rating:</strong> ${movie.vote_average} / 10</p>
     <p><strong>Overview:</strong> ${movie.overview}</p>
