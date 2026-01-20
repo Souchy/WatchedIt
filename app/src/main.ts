@@ -1,5 +1,5 @@
 import Aurelia, { AppTask, ConsoleSink, IContainer, LoggerConfiguration, LogLevel, Registration } from 'aurelia';
-import { RouterConfiguration } from '@aurelia/router';
+import { RouteNode, RouterConfiguration, Transition } from '@aurelia/router';
 import { MyApp } from './my-app';
 import { TrendingMovies } from './pages/trending-movies/TrendingMovies';
 import * as SouchyAu from 'souchy.au';
@@ -28,6 +28,7 @@ import { CastList } from './components/cast-list/CastList';
 import { CrewList } from './components/crew-list/CrewList';
 import { PersonPage } from './pages/person-page/PersonPage';
 import { NewsPage } from './pages/news-page/NewsPage';
+import { I18N } from '@aurelia/i18n';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
   auth: {
@@ -68,7 +69,7 @@ if (localGenresMap) {
 
 
 const au = new Aurelia();
-// let i18n: I18N | null = null;
+let i18n: I18N | null = null;
 
 // Logger for development
 if (import.meta.env.VITE_NODE_ENV !== 'production') {
@@ -94,6 +95,12 @@ au.register(RouterConfiguration.customize({
   //   // const root = tr.routeTree.root;
   //   const child = tr.routeTree.root.children[0];
   //   return `${i18n.tr(child.data.i18n as string)}`;
+  // },
+  // buildTitle: (tr: Transition) => {
+  //   const root = tr.routeTree.root;
+  //   const baseTitle = root.context.routeConfigContext.config.title;
+  //   const titlePart = root.children.map(c => c.title).join(' - ');
+  //   return `${baseTitle} - ${titlePart}`;
   // },
   basePath: '/',
 }));

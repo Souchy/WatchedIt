@@ -1,4 +1,4 @@
-import { Params, RouteNode } from "@aurelia/router";
+import { INavigationOptions, Params, RouteNode } from "@aurelia/router";
 import { fromState } from "@aurelia/state";
 import { TMDB, TVShow, TMDBResponseList, TVShowItem, TVShowCreditsResponse, Movie, MovieItem, MovieCreditsResponse, MoviesAPI, TVShowsAPI } from "@leandrowkz/tmdb";
 import { Session } from "@supabase/supabase-js";
@@ -58,15 +58,31 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow> implements ISu
 		this.super_logger.debug('Media ID from route params:', this.mediaId);
 		return !!this.mediaId;
 	}
+
 	async loading?(params: Params, next: RouteNode, current: RouteNode | null): Promise<void> {
 		this.mediaId = parseInt(params.id ?? '');
 		this.media = await this.api.details(this.mediaId) as T;
+		this.setDocumentTitle();
 		this.super_logger.debug('Loaded Media details:', this.media);
 		await this.moreSimilar();
 		this.credits = await this.api.credits(this.mediaId);
 		// this.credits.cast.sort((a, b) => a.order - b.order);
 		this.credits.crew.sort((a, b) => b.popularity - a.popularity);
 		this.super_logger.debug('Loaded Media credits:', this.credits);
+		// next.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
+		// current.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
+	}
+	// public loaded(params: Params, _next: RouteNode, _current: RouteNode | null, _options: INavigationOptions) {
+	// 	this.super_logger.debug('Product page fully loaded', params.id);
+	// 	// _options.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
+	// 	// _current?.context.setTitle(this.title + ' (' + this.releaseYear + ') - Watchedit');
+	// 	// _current.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
+	// 	// this.$controller.host.querySelector<HTMLButtonElement>('button.buy')?.focus();
+	// }
+
+	// Dynamically set the document title
+	private setDocumentTitle() {
+		document.title = this.title + ' (' + this.releaseYear + ')'; // - Watchedit';
 	}
 
 	public async moreSimilar() {

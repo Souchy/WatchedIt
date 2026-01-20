@@ -7,7 +7,7 @@ import { SuperMediaDetails } from "../components/SuperMediaDetails";
 @route({
 	id: 'movie',
 	path: ['movie/:id'],
-	title: 'Movie',
+	// title: 'Movie',
 })
 export class MoviePage extends SuperMediaDetails<Movie> implements IRouteViewModel {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MoviePage');
