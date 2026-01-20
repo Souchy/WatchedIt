@@ -8,6 +8,16 @@
     <img src.bind="posterUrl" alt.bind="`Poster for ${title}`" />
   </figure>
   <div class="details-info">
+    <div class="state-controls">
+      <!-- Set as .. -->
+      <button repeat.for="btn of availableWatchStateButtons" class="btn-state" click.trigger="clickWatchStateButton(btn)" aria-label.bind="btn.ariaLabel" title.bind="btn.ariaLabel">
+        <i class.bind="btn.iconClass"></i>
+      </button>
+      <!-- Set unlisted -->
+      <button if.bind="resetWatchStateButton" class="reset-button btn-state" aria-label.bind="resetWatchStateButton.ariaLabel" click.trigger="clickWatchStateButton(resetWatchStateButton)" aria-label.bind="resetWatchStateButton.ariaLabel" title.bind="resetWatchStateButton.ariaLabel">
+        <i class.bind="resetWatchStateButton.iconClass" aria-hidden="true"></i>
+      </button>
+    </div>
     <p><strong>Release Date:</strong> ${releaseDate}</p>
     <p><strong>Rating:</strong> ${tvshow.vote_average} / 10</p>
     <p><strong>Overview:</strong> ${tvshow.overview}</p>
