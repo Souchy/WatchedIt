@@ -29,6 +29,7 @@ import { CrewList } from './components/crew-list/CrewList';
 import { PersonPage } from './pages/person-page/PersonPage';
 import { NewsPage } from './pages/news-page/NewsPage';
 import { I18N } from '@aurelia/i18n';
+import { SeasonList } from './pages/media-page/tvshow-page/season-list/SeasonList';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
   auth: {
@@ -114,7 +115,7 @@ au.register(Registration.instance(GenresMap, genresMap));
 // Components
 au.register(SouchyAu);
 au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage, CallbackPage, TvShowPage, MyListPage, PersonPage, NewsPage);
-au.register(TrendingMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar, CastList, CrewList);
+au.register(TrendingMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar, CastList, CrewList, SeasonList);
 
 
 await au.app(MyApp).start();

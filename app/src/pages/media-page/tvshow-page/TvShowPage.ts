@@ -1,5 +1,5 @@
 import { ILogger, resolve } from "aurelia";
-import { IRouteViewModel, route } from '@aurelia/router';
+import { IRouteViewModel, Params, route, RouteNode } from '@aurelia/router';
 import { TVShow } from "@leandrowkz/tmdb";
 import { MediaKind } from "src/core/MediaUserData";
 import { SuperMediaDetails } from "../components/SuperMediaDetails";
@@ -18,6 +18,10 @@ export class TvShowPage extends SuperMediaDetails<TVShow> implements IRouteViewM
 
 	public get api() {
 		return this.tmdb.tvShows;
+	}
+
+	public get seasons() {
+		return this.media?.seasons;
 	}
 
 	public get posterUrl(): string {
@@ -44,7 +48,7 @@ export class TvShowPage extends SuperMediaDetails<TVShow> implements IRouteViewM
 	public get releaseYear(): string {
 		return this.media.first_air_date ? this.media.first_air_date.split('-')[0] : 'N/A';
 	}
-	
+
 	public get rating() {
 		return this.media.vote_average;
 	}

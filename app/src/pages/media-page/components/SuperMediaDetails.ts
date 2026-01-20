@@ -72,13 +72,6 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow> implements ISu
 		// next.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
 		// current.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
 	}
-	// public loaded(params: Params, _next: RouteNode, _current: RouteNode | null, _options: INavigationOptions) {
-	// 	this.super_logger.debug('Product page fully loaded', params.id);
-	// 	// _options.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
-	// 	// _current?.context.setTitle(this.title + ' (' + this.releaseYear + ') - Watchedit');
-	// 	// _current.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
-	// 	// this.$controller.host.querySelector<HTMLButtonElement>('button.buy')?.focus();
-	// }
 
 	// Dynamically set the document title
 	private setDocumentTitle() {
@@ -110,11 +103,15 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow> implements ISu
 		return ResetButtonMap.get(this.watchState);
 	}
 	public get watchState(): WatchState {
+		if(!this.media)
+			return WatchState.Unlisted;
 		return this.dataMap && this.dataMap[this.media.id]
 			? this.dataMap[this.media.id].state
 			: WatchState.Unlisted;
 	}
 	public set watchState(value: WatchState) {
+		if(!this.media)
+			return;
 		this.super_logger.debug(`Watch state changed to: ${value} for media ID: ${this.media.id}`);
 		this.supabase.updateMediaUserData(this.media.id, this.mediaKind, {
 			state: value,
