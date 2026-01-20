@@ -15,7 +15,7 @@ export class MoviePage extends SuperMediaDetails<Movie> implements IRouteViewMod
 	public get mediaKind(): MediaKind {
 		return MediaKind.Movie;
 	}
-	
+
 	public get api(): MoviesAPI | TVShowsAPI {
 		return this.tmdb.movies;
 	}
@@ -43,6 +43,10 @@ export class MoviePage extends SuperMediaDetails<Movie> implements IRouteViewMod
 
 	public get releaseYear(): string {
 		return this.media.release_date ? this.media.release_date.split('-')[0] : 'N/A';
+	}
+
+	public get rating() {
+		return this.media.vote_average;
 	}
 
 	public get overview(): string {

@@ -44,6 +44,10 @@ export class TvShowPage extends SuperMediaDetails<TVShow> implements IRouteViewM
 	public get releaseYear(): string {
 		return this.media.first_air_date ? this.media.first_air_date.split('-')[0] : 'N/A';
 	}
+	
+	public get rating() {
+		return this.media.vote_average;
+	}
 
 	public get overview(): string {
 		return this.media.overview;
