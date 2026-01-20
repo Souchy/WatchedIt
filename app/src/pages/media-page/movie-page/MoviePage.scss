@@ -32,7 +32,7 @@ movie-page {
 		border-bottom: 1px solid var(--on-surface);
 	}
 
-	.movie-details {
+	.media-details {
 		display: flex;
 		gap: 1rem;
 		align-items: flex-start;
@@ -42,7 +42,7 @@ movie-page {
 
 	// Make this a setting?
 	// @media (min-width: 768px) {
-	// 	.movie-details {
+	// 	.media-details {
 	// 		flex-direction: row;
 	// 		// margin-bottom: 2rem;
 	// 	}
