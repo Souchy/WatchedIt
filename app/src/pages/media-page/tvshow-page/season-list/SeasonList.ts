@@ -1,9 +1,13 @@
-import { TVSeasonItem } from "@leandrowkz/tmdb";
+import { TVSeasonItem, TVShow } from "@leandrowkz/tmdb";
 import { bindable } from "aurelia";
 
 export class SeasonList {
+	// @bindable
+	// public tvshowid: string = '';
+	// @bindable
+	// public seasons: TVSeasonItem[] = [];
 	@bindable
-	public seasons: TVSeasonItem[] = [];
+	public show: TVShow;;
 	@bindable
 	public size: number = 100; // px width for poster
 
@@ -24,5 +28,9 @@ export class SeasonList {
 
 	public get isShowMoreVisible(): boolean {
 		return this.max < this.seasons.length;
+	}
+
+	public get seasons(): TVSeasonItem[] {
+		return this.show.seasons ?? [];
 	}
 }

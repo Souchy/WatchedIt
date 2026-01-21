@@ -1,6 +1,6 @@
 import { INavigationOptions, Params, RouteNode } from "@aurelia/router";
 import { fromState } from "@aurelia/state";
-import { TMDB, TVShow, TMDBResponseList, TVShowItem, TVShowCreditsResponse, Movie, MovieItem, MovieCreditsResponse, MoviesAPI, TVShowsAPI } from "@leandrowkz/tmdb";
+import { TMDB, TVShow, TMDBResponseList, TVShowItem, TVShowCreditsResponse, Movie, MovieItem, MovieCreditsResponse, MoviesAPI, TVShowsAPI, TVSeason, TVSeasonsAPI } from "@leandrowkz/tmdb";
 import { Session } from "@supabase/supabase-js";
 import { ILogger, resolve } from "aurelia";
 import { GenresMap } from "src/core/Genres";
@@ -9,14 +9,14 @@ import { SupabaseService } from "src/core/services/SupabaseService";
 import { AppState } from "src/core/state/AppState";
 import { AvailableButtonsPerWatchState, ResetButtonMap, WatchState, WatchStateButton } from "src/core/WatchState";
 
-export interface ISuperMediaDetails<T extends Movie | TVShow> {
+export interface ISuperMediaDetails<T extends Movie | TVShow | TVSeason> extends INavigationOptions {
 	mediaId: number;
 	media: T;
 	similar: TMDBResponseList<(MovieItem | TVShowItem)[]> | null;
 	credits: MovieCreditsResponse | TVShowCreditsResponse | null;
 
 	get mediaKind(): MediaKind;
-	get api(): MoviesAPI | TVShowsAPI;
+	get api(): MoviesAPI | TVShowsAPI | TVSeasonsAPI;
 
 
 	get posterUrl(): string;
@@ -27,7 +27,7 @@ export interface ISuperMediaDetails<T extends Movie | TVShow> {
 	get overview(): string;
 }
 
-export abstract class SuperMediaDetails<T extends Movie | TVShow> implements ISuperMediaDetails<T> {
+export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> implements ISuperMediaDetails<T> {
 
 	private readonly super_logger: ILogger = resolve(ILogger).scopeTo('SuperMediaDetails');
 	protected readonly tmdb = resolve(TMDB);
@@ -39,6 +39,7 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow> implements ISu
 	protected dataMap!: Record<number, MediaUserData> | null;
 
 	mediaId: number;
+	seasonId: number;
 	media: T;
 	similar: TMDBResponseList<(MovieItem | TVShowItem)[]> | null;
 	credits: MovieCreditsResponse | TVShowCreditsResponse | null;
@@ -55,22 +56,31 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow> implements ISu
 
 	canLoad(params: Params) {
 		this.mediaId = parseInt(params.id ?? '');
+		this.seasonId = parseInt(params.seasonId ?? '');
 		this.super_logger.debug('Media ID from route params:', this.mediaId);
 		return !!this.mediaId;
 	}
 
 	async loading?(params: Params, next: RouteNode, current: RouteNode | null): Promise<void> {
-		this.mediaId = parseInt(params.id ?? '');
-		this.media = await this.api.details(this.mediaId) as T;
+		// this.mediaId = parseInt(params.id ?? '');
+		// this.seasonId = parseInt(params.seasonId ?? '');
+		await this.fetchDetails();
 		this.setDocumentTitle();
 		this.super_logger.debug('Loaded Media details:', this.media);
 		await this.moreSimilar();
-		this.credits = await this.api.credits(this.mediaId);
+		await this.fetchCredits();
 		// this.credits.cast.sort((a, b) => a.order - b.order);
 		this.credits.crew.sort((a, b) => b.popularity - a.popularity);
 		this.super_logger.debug('Loaded Media credits:', this.credits);
 		// next.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
 		// current.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
+	}
+
+	public async fetchDetails() {
+		this.media = await this.api.details(this.mediaId) as T;
+	}
+	public async fetchCredits() {
+		this.credits = await this.api.credits(this.mediaId);
 	}
 
 	// Dynamically set the document title
@@ -103,14 +113,14 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow> implements ISu
 		return ResetButtonMap.get(this.watchState);
 	}
 	public get watchState(): WatchState {
-		if(!this.media)
+		if (!this.media)
 			return WatchState.Unlisted;
 		return this.dataMap && this.dataMap[this.media.id]
 			? this.dataMap[this.media.id].state
 			: WatchState.Unlisted;
 	}
 	public set watchState(value: WatchState) {
-		if(!this.media)
+		if (!this.media)
 			return;
 		this.super_logger.debug(`Watch state changed to: ${value} for media ID: ${this.media.id}`);
 		this.supabase.updateMediaUserData(this.media.id, this.mediaKind, {

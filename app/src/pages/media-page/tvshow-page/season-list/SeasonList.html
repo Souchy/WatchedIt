@@ -1,6 +1,6 @@
 <ul style.bind="`grid-template-columns: ${columnStyle}`">
   <li repeat.for="season of seasons" if.bind="$index < max">
-    <a load="route: season; params.bind: {id: season.id}; context.bind: null" aria-label.bind="`View details for ${season.name}`">
+    <a load="route: tv; params.bind: {id: show.id, seasonId: season.season_number}; context.bind: null" aria-label.bind="`View details for ${season.name}`">
       <figure>
         <img src.bind="`https://image.tmdb.org/t/p/w200${season.poster_path}`" alt.bind="`Poster for ${season.name}`" />
         <figcaption>

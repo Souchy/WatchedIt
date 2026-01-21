@@ -13,6 +13,7 @@ import { TvShowPage } from './pages/media-page/tvshow-page/TvShowPage';
 import { MyListPage } from './pages/my-list-page/MyListPage';
 import { PersonPage } from './pages/person-page/PersonPage';
 import { NewsPage } from './pages/news-page/NewsPage';
+import { SeasonPage } from './pages/media-page/season-page/SeasonPage';
 
 @route({
   routes: [
@@ -27,7 +28,8 @@ import { NewsPage } from './pages/news-page/NewsPage';
     PersonPage,
     SearchPage,
     MyListPage,
-    NewsPage
+    NewsPage,
+    SeasonPage
   ],
   fallback: MissingPage,
 })
