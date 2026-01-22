@@ -1,6 +1,6 @@
 import { AuthChangeEvent, Provider, Subscription, SupabaseClient } from "@supabase/supabase-js";
 import { ILogger, inject, resolve } from "aurelia";
-import { MediaKind, MediaUserData } from "../MediaUserData";
+import { MediaKind, MediaUserData, TvShowSeasonLink } from "../MediaUserData";
 import { IStore } from "@aurelia/state";
 import { AppState } from "../state/AppState";
 import { AppAction } from "../state/AppHandler";
@@ -26,7 +26,7 @@ export class SupabaseService {
 				this.logger.debug(`Supabase Auth signed_in: activating auth-refresh`);
 				this.supabaseClient.auth.startAutoRefresh();
 				this.fetchMediaUserDataMap();
-			} 
+			}
 			else if (!session && event === 'SIGNED_OUT') {
 				// Handle sign-out if needed
 				this.logger.debug(`Supabase Auth signed_out, stopping auth-refresh, `);
@@ -70,9 +70,13 @@ export class SupabaseService {
 
 		this.logger.debug(`Fetching media user data for user (${session.user.email}).`);
 		const { data, error } = await this.supabaseClient
-			.from('media-user-data')
+			// .from('media_user_data')
+			// .select('*')
+			.from('media_user_data_season')
 			.select('*')
-			.eq('user_id', session.user.id);
+			.eq('user_id', session.user.id)
+			.order('updated_at', { ascending: false })
+			;
 
 		if (error) {
 			this.logger.error(`Error fetching media user (${session.user.id}) data:`, error);
@@ -112,15 +116,42 @@ export class SupabaseService {
 		this.store.dispatch(new MediaUserDataChangedAction(mediaId, kind, mediaUserData));
 		const updatedData = this.store.getState().mediaUserDataMap[mediaId];
 
+		if (updatedData.kind === MediaKind.TVSeason && mediaUserData.tmdb_show_id !== undefined && mediaUserData.tmdb_season_number !== undefined) {
+			this.logger.debug('Updating TvSeason link data for media user data:', updatedData);
+			// update or insert into tv season link table
+			const tvSeasonLink: TvShowSeasonLink = {
+				tmdb_season_id: mediaUserData.tmdb_id,
+				tmdb_show_id: mediaUserData.tmdb_show_id,
+				tmdb_season_number: mediaUserData.tmdb_season_number,
+			};
+			const { data: linkData, error: linkError } = await this.supabaseClient
+				.from('tv_show_season_link')
+				.upsert(tvSeasonLink, { onConflict: 'tmdb_season_id' });
+				// .insert(tvSeasonLink);
+
+			if (linkError) {
+				this.logger.error('Error updating TvSeason link data for media user data:', linkError);
+			} else {
+				this.logger.debug('Updated TvSeason link data for media user data:', linkData);
+			}
+		}
+
+		// delete fields that should not be sent to this table
+		delete updatedData.tmdb_season_number;
+		delete updatedData.tmdb_show_id;
+		// auto-complete suggested those too:
+		// delete updatedData.created_at; // remove created_at for upsert
+		// delete updatedData.updated_at; // remove updated_at for upsert
+
 		// update db
 		const { data, error } = await this.supabaseClient
-			.from('media-user-data')
+			.from('media_user_data')
 			.upsert({
 				...updatedData,
 				user_id: session.user.id,
 				tmdb_id: mediaId,
 				kind: kind,
-			}, { onConflict: 'user_id,tmdb_id' });
+			}, { onConflict: 'user_id,tmdb_id,kind' });
 
 		// On error, rollback state change
 		if (error) {
