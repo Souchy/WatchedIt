@@ -5,13 +5,11 @@ export const MediaUserDataMapChangedActionName = "mediaUserDataMapChanged";
 
 export class MediaUserDataMapChangedAction {
 	public readonly type = MediaUserDataMapChangedActionName;
-	constructor(public mediaUserDataMap: Record<number, MediaUserData> | null) { }
+	constructor(public mediaUserDatas: MediaUserData[]) { }
 }
 
 export function MediaUserDataMapChangedHandler(currentState: AppState, action: MediaUserDataMapChangedAction): AppState {
 	if (action.type !== MediaUserDataMapChangedActionName) return currentState;
-	return {
-		...currentState,
-		mediaUserDataMap: action.mediaUserDataMap,
-	};
+	currentState.mediaUserDataCache.setMap(action.mediaUserDatas);
+	return currentState;
 }

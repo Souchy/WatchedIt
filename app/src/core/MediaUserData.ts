@@ -33,9 +33,9 @@ export function createDefaultMediaUserData(userId: string, tmdbId: number, kind:
 	return {
 		user_id: userId,
 		tmdb_id: tmdbId,
+		kind: kind,
 		created_at: new Date().toISOString(),
 		updated_at: new Date().toISOString(),
-		kind: kind,
 		state: WatchState.Unlisted,
 		completed_episodes: 0,
 		like: false,

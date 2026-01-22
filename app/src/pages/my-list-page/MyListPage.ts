@@ -1,5 +1,5 @@
 import { route } from "@aurelia/router";
-import { ILogger, inject, observable, resolve, watch } from "aurelia";
+import { ILogger, inject, IObservation, observable, resolve, watch } from "aurelia";
 import { MoviePage } from "../media-page/movie-page/MoviePage";
 import { AppState } from "src/core/state/AppState";
 import { AppAction } from "src/core/state/AppHandler";
@@ -9,7 +9,10 @@ import { Session } from "@supabase/supabase-js";
 import { WatchState, WatchStateButtonMap } from "src/core/WatchState";
 import { MediaKind, MediaUserData } from "src/core/MediaUserData";
 import { LanguageCode, Movie, MovieItem, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
-import { FilterSort, filterSorts, MediaUserDataKind } from "../search-page/SearchPage";
+import { UserDataCache } from "src/core/state/UserDataCache";
+import { TMDBDataCache } from "src/core/state/TMDBDataCache";
+import { MediaKindDetails, MediaKindItem, UserMediaDetails } from "src/core/Types";
+import { FilterSort, filterSorts } from "src/core/Sorts";
 
 export class MyListSearchFilters {
 	query: string = '';
@@ -81,29 +84,30 @@ export class MyListPage {
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('MyListPage');
 	private readonly supabase: SupabaseService = resolve(SupabaseService);
 	private readonly tmdb: TMDB = resolve(TMDB);
+	private readonly observation = resolve(IObservation);
 
 	@fromState((state: AppState) => state.session)
 	public session!: Session | null;
-	@fromState((state: AppState) => state.mediaUserDataMap)
+	@fromState((state: AppState) => state.mediaUserDataCache)
 	@observable
-	public mediaUserDataMap!: Record<string, MediaUserData> | null;
-	@fromState((state: AppState) => state.tmdbData)
-	public tmdbData!: Map<string, Movie | TVShow>;
+	public mediaUserDataCache!: UserDataCache | null;
+	@fromState((state: AppState) => state.tmdbDataCache)
+	public tmdbData!: TMDBDataCache | null;
 
 	// Filtering and Sorting
 	private filter: MyListSearchFilters = new MyListSearchFilters();
 	private filterSortBy: FilterSort = filterSorts[0];
 	private debounceTimeout: NodeJS.Timeout | null = null;
 
-	// Cached TMDB data and filtered results
-	// private tmdbData = new Map<string, Movie | TVShow>();
-	// private filteredMediaUserDataCache: TMDBResponseList<MediaUserData[]> = null;
-	private filteredMediaUserDataCache: TMDBResponseList<Array<Media>> | null = null;
+	// Cached filtered results
+	private filteredMediaUserDataCache: TMDBResponseList<Array<UserMediaDetails>> | null = null;
 
 
 	// Load initial data
 	attached() {
-		this.mediaUserDataMapChanged({}, this.mediaUserDataMap);
+		this.logger.debug('MyListPage attached, user cache size: ', this.mediaUserDataCache?.size());
+		this.observation.watch(this.mediaUserDataCache, (cache) => cache.mediaUserData, this.mediaUserDataCacheChanged.bind(this));
+		this.mediaUserDataCacheChanged(null, this.mediaUserDataCache);
 		// this.search();
 	}
 
@@ -114,21 +118,23 @@ export class MyListPage {
 	public get watchStateOptions() {
 		return WatchStateFilterOptions;
 	}
+
 	public get formatOptions() {
 		return FormatOptions;
 	}
 
 	/**
-	 * When the mediaUserDataMap changes, fetch TMDB details for each media item
+	 * When the mediaUserDataCache changes, fetch TMDB details for each media item
 	 */
-	async mediaUserDataMapChanged(previous: Record<string, MediaUserData>, current: Record<string, MediaUserData>) {
-		if (!this.mediaUserDataMap) {
+	async mediaUserDataCacheChanged(previous: UserDataCache | null, current: UserDataCache | null) {
+		this.logger.debug('Media cache changed, user cache size: ', this.mediaUserDataCache?.size() || -1);
+		if (!this.mediaUserDataCache) {
 			return;
 		}
-		this.logger.debug('MediaUserDataMap changed:', Object.keys(previous).length, Object.keys(this.mediaUserDataMap).length);
-
+		const keys = this.mediaUserDataCache.keys();
+		// this.logger.debug('MediaUserDataCache changed:', keys.length);
 		// TOD: Fetch in order of the user's filtered list? And asynchronously to not block UI
-		const keys = Object.keys(this.mediaUserDataMap);
+		// const keys = Object.keys(this.mediaUserDataCache);
 		this.logger.debug(`Fetching TMDB details for ${keys.length} media items...`);
 
 		// Limit to first 20 for now
@@ -178,23 +184,23 @@ export class MyListPage {
 	}
 
 	public async searchMore() {
-		if (!this.mediaUserDataMap) {
-			this.logger.warn('No media user data map available for searching.');
+		if (!this.mediaUserDataCache) {
+			this.logger.warn('No media user data cache available for searching.');
 			return;
 		}
 
-		this.logger.debug(`Searching more through ${Object.keys(this.mediaUserDataMap).length} media user data items with filters:`, this.filter);
+		this.logger.debug(`Searching more through ${this.mediaUserDataCache.size()} media user data items with filters:`, this.filter);
 		const page = this.filteredMediaUserDataCache ? this.filteredMediaUserDataCache.page + 1 : 1;
 
 		// let filteredItems: TMDBResponseList<Array<MediaUserData & { details: (TVShow | Movie) }>>
 		// 	= { page: page, results: [], total_pages: page, total_results: 0 };
 		this.filteredMediaUserDataCache = { page: page, results: [], total_pages: page, total_results: 0 };
 
-		const keys = Object.keys(this.mediaUserDataMap);
+		const keys = this.mediaUserDataCache.keys();
 		for (const key of keys) {
 			if (this.searchCancelled)
 				return;
-			const item = this.mediaUserDataMap[key];
+			const item = this.mediaUserDataCache.getByKey(key);
 			if (!item) {
 				this.logger.warn(`searchMore: item for key ${key} is null or undefined, skipping.`);
 				continue;
@@ -213,11 +219,11 @@ export class MyListPage {
 			if (this.filter.list !== 'all' && item.state != this.filter.list) {
 				continue;
 			}
-			let details = this.tmdbData.get(key); //item.tmdb_id);
+			let details = this.tmdbData.getByKey(key); //item.tmdb_id);
 			if (!details) {
 				const api = item.kind === MediaKind.Movie ? this.tmdb.movies : this.tmdb.tvShows;
 				details = await api.details(item.tmdb_id);
-				this.tmdbData.set(key, details);
+				this.tmdbData.setByKey(key, details);
 			}
 			// if (this.filter.language && details.original_language !== this.filter.language) {
 			// 	continue;

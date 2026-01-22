@@ -7,6 +7,7 @@ import { GenresMap } from "src/core/Genres";
 import { MediaKind, MediaUserData } from "src/core/MediaUserData";
 import { SupabaseService } from "src/core/services/SupabaseService";
 import { AppState } from "src/core/state/AppState";
+import { UserDataCache } from "src/core/state/UserDataCache";
 import { AvailableButtonsPerWatchState, ResetButtonMap, WatchState, WatchStateButton } from "src/core/WatchState";
 
 export interface ISuperMediaDetails<T extends Movie | TVShow | TVSeason> extends INavigationOptions {
@@ -35,8 +36,8 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 	protected readonly genresMap = resolve(GenresMap);
 	@fromState((state: AppState) => state.session)
 	protected session: Session | null = null;
-	@fromState((state: AppState) => state.mediaUserDataMap)
-	protected dataMap!: Record<number, MediaUserData> | null;
+	@fromState((state: AppState) => state.mediaUserDataCache)
+	protected userDataCache!: UserDataCache;
 
 	mediaId: number;
 	seasonId: number;
@@ -115,9 +116,7 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 	public get watchState(): WatchState {
 		if (!this.media)
 			return WatchState.Unlisted;
-		return this.dataMap && this.dataMap[this.media.id]
-			? this.dataMap[this.media.id].state
-			: WatchState.Unlisted;
+		return this.userDataCache.getWatchState(this.media.id, this.mediaKind);
 	}
 	public set watchState(value: WatchState) {
 		if (!this.media)

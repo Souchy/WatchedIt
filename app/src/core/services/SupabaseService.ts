@@ -61,7 +61,7 @@ export class SupabaseService {
 			window.open(res.data.url, '_blank', 'width=500,height=600');
 	}
 
-	public async fetchMediaUserDataMap(): Promise<Record<number, MediaUserData> | null> {
+	public async fetchMediaUserDataMap(): Promise<void> {
 		let session = this.store.getState().session;
 		if (!session) {
 			this.logger.warn('No active session found while fetching media user data map.');
@@ -86,21 +86,8 @@ export class SupabaseService {
 			this.logger.debug(`No media user data found for the user (${session.user.id}).`);
 			return null;
 		}
-		const mediaUserDataMap: Record<number, MediaUserData> = {};
-		for (const item of data) {
-			mediaUserDataMap[item.tmdb_id] = item satisfies MediaUserData;
-			// mediaUserDataMap[item.tmdb_id] = {
-			// 	created_at: item.created_at,
-			// 	updated_at: item.updated_at,
-			// 	state: item.state,
-			// 	completed_episodes: item.completed_episodes,
-			// 	rating: item.rating,
-			// 	watch_start_date: item.watch_start_date,
-			// 	watch_completed_date: item.watch_completed_date,
-			// } satisfies MediaUserData;
-		}
-		this.store.dispatch(new MediaUserDataMapChangedAction(mediaUserDataMap));
-		return mediaUserDataMap;
+		// Dispatch to store
+		this.store.dispatch(new MediaUserDataMapChangedAction(data as MediaUserData[]));
 	}
 
 	public async updateMediaUserData(mediaId: number, kind: MediaKind, mediaUserData: Partial<MediaUserData>): Promise<boolean> {
@@ -112,9 +99,9 @@ export class SupabaseService {
 		}
 
 		// save optimistically to state
-		const previousData = this.store.getState().mediaUserDataMap[mediaId] || null;
+		const previousData = this.store.getState().mediaUserDataCache.get(mediaId, kind);
 		this.store.dispatch(new MediaUserDataChangedAction(mediaId, kind, mediaUserData));
-		const updatedData = this.store.getState().mediaUserDataMap[mediaId];
+		const updatedData = this.store.getState().mediaUserDataCache.get(mediaId, kind);
 
 		if (updatedData.kind === MediaKind.TVSeason && mediaUserData.tmdb_show_id !== undefined && mediaUserData.tmdb_season_number !== undefined) {
 			this.logger.debug('Updating TvSeason link data for media user data:', updatedData);

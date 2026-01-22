@@ -11,12 +11,9 @@ export class MediaUserDataChangedAction {
 
 export function MediaUserDataChangedHandler(currentState: AppState, action: MediaUserDataChangedAction): AppState {
 	if (action.type !== MediaUserDataChangedActionName) return currentState;
-	// if (action.tmdb_id === null) {
-	// 	return currentState;
-	// }
 
-	const existingOrNewData = currentState.mediaUserDataMap[action.tmdb_id] 
-		|| createDefaultMediaUserData(currentState.session.user.id, action.tmdb_id, action.kind);
+	const existingData = currentState.mediaUserDataCache.get(action.tmdb_id, action.kind);
+	const existingOrNewData = existingData || createDefaultMediaUserData(currentState.session!.user.id, action.tmdb_id, action.kind);
 
 	let updatedData = {
 		...existingOrNewData,
@@ -24,8 +21,8 @@ export function MediaUserDataChangedHandler(currentState: AppState, action: Medi
 		...action.mediaUserData,
 	} satisfies MediaUserData;
 
-	console.log('MediaUserDataChangedHandler - updatedData:', updatedData);	
+	// console.log('MediaUserDataChangedHandler - updatedData:', updatedData);	
 
-	currentState.mediaUserDataMap[action.tmdb_id] = updatedData;
+	currentState.mediaUserDataCache.set(updatedData);
 	return currentState;
 }

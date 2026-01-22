@@ -7,6 +7,7 @@ import { GenresMap } from "src/core/Genres";
 import { createDefaultMediaUserData, MediaKind, MediaUserData } from "src/core/MediaUserData";
 import { SupabaseService } from "src/core/services/SupabaseService";
 import { AppState } from "src/core/state/AppState";
+import { UserDataCache } from "src/core/state/UserDataCache";
 import { AvailableButtonsPerWatchState, ResetButtonMap, SetPlanToWatchButton, WatchState, WatchStateButton } from "src/core/WatchState";
 import { MoviePage } from "src/pages/media-page/movie-page/MoviePage";
 import { TvShowPage } from "src/pages/media-page/tvshow-page/TvShowPage";
@@ -26,8 +27,8 @@ export class MovieMini {
 
 	@fromState((state: AppState) => state.session)
 	public session: Session | null = null;
-	@fromState((state: AppState) => state.mediaUserDataMap)
-	public dataMap!: Record<number, MediaUserData> | null;
+	@fromState((state: AppState) => state.mediaUserDataCache)
+	protected userDataCache!: UserDataCache;
 
 	bound() {
 		this.logger.trace('MovieMini bound with media:', this.media);
@@ -92,9 +93,7 @@ export class MovieMini {
 		return ResetButtonMap.get(this.watchState);
 	}
 	public get watchState(): WatchState {
-		return this.dataMap && this.dataMap[this.media.id]
-			? this.dataMap[this.media.id].state
-			: WatchState.Unlisted;
+		return this.userDataCache.getWatchState(this.media.id, this.mediaKind);
 	}
 	public set watchState(value: WatchState) {
 		this.logger.debug(`Watch state changed to: ${value} for movie ID: ${this.media.id}`);
@@ -111,7 +110,7 @@ export class MovieMini {
 		this.watchState = btn.setWatchState;
 	}
 	public async incrementEpisodesCompleted(): Promise<void> {
-		const currentDataEpisodes = this.dataMap[this.tvshow.id].completed_episodes || 0;
+		const currentDataEpisodes = this.userDataCache.get(this.tvshow.id, this.mediaKind)?.completed_episodes || 0;
 		let updatedData: Partial<MediaUserData> = {
 			completed_episodes: currentDataEpisodes + 1,
 		};

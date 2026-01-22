@@ -9,6 +9,9 @@ import { Session } from "@supabase/supabase-js";
 import { WatchState } from "src/core/WatchState";
 import { MediaKind, MediaUserData } from "src/core/MediaUserData";
 import { LanguageCode, Movie, MovieItem, SearchMoviesFilters, SearchMultiSearchFilters, SearchMultiSearchResponse, SearchTVShowsFilters, TMDB, TMDBResponseList, TVShow, TVShowItem } from "@leandrowkz/tmdb";
+import { MediaKindDetails, MediaKindItem } from "src/core/Types";
+import { UserDataCache } from "src/core/state/UserDataCache";
+import { FilterSort, filterSorts } from "src/core/Sorts";
 
 export class Range {
 	min: number | null = null;
@@ -26,38 +29,8 @@ export class Range {
 
 export type MediaUserDataKind = Pick<MediaUserData, 'kind'>;
 
-type Media = MediaUserDataKind & { details: (TVShowItem | MovieItem) };
+// type Media = MediaUserDataKind & { details: (TVShowItem | MovieItem) };
 
-export type FilterSort = {
-	value: string;
-	label: string;
-	function: (a: Media, b: Media) => number;
-};
-export const filterSorts: FilterSort[] = [
-	{
-		value: 'popularity',
-		label: 'Popularity',
-		function: (a: Media, b: Media) => {
-			return (b.details.popularity! - a.details.popularity!);
-		}
-	},
-	{
-		value: 'vote_average',
-		label: 'Average Vote',
-		function: (a: Media, b: Media) => {
-			return (b.details.vote_average! - a.details.vote_average!);
-		}
-	},
-	{
-		value: 'release_date',
-		label: 'Release Date',
-		function: (a: Media, b: Media) => {
-			const dateA = 'first_air_date' in a.details ? a.details.first_air_date : a.details.release_date;
-			const dateB = 'first_air_date' in b.details ? b.details.first_air_date : b.details.release_date;
-			return (dateB || '').localeCompare(dateA || '');
-		}
-	},
-]
 
 export class TMDBSearchFilters {
 	query: string = '';
@@ -85,9 +58,9 @@ export class SearchPage {
 
 	@fromState((state: AppState) => state.session)
 	public session!: Session | null;
-	@fromState((state: AppState) => state.mediaUserDataMap)
-	@observable
-	public mediaUserDataMap!: Record<string, MediaUserData> | null;
+	// @fromState((state: AppState) => state.mediaUserDataCache)
+	// @observable
+	// public mediaUserDataCache!: UserDataCache | null;
 
 	private searchEle: HTMLInputElement | null = null;
 
@@ -110,7 +83,8 @@ export class SearchPage {
 	private debounceTimeout: NodeJS.Timeout | null = null;
 
 
-	private results: TMDBResponseList<Array<MediaUserDataKind & { details: (TVShowItem | MovieItem) }>> | null = null;
+	// private results: TMDBResponseList<Array<MediaUserDataKind & { details: (TVShowItem | MovieItem) }>> | null = null;
+	private results: TMDBResponseList<Array<MediaKindItem>> | null = null;
 
 
 	public constructor(private readonly store: IStore<AppState, AppAction>) {
@@ -158,7 +132,7 @@ export class SearchPage {
 			return {
 				kind: MediaKind.TVShow,
 				details: tvshow,
-			};
+			} satisfies MediaKindItem;
 		})
 
 		// this.tmdb.discover.movies({
@@ -185,7 +159,7 @@ export class SearchPage {
 			return {
 				kind: MediaKind.Movie,
 				details: movie,
-			};
+			} satisfies MediaKindItem;
 		});
 
 		const newResults = [...tvResults, ...movieResults].sort(this.filterSortBy.function);
