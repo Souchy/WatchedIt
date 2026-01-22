@@ -26,6 +26,7 @@ export enum MediaKind {
 	Movie = 0,
 	TVShow = 1,
 	People = 2,
+	TVSeason = 3,
 }
 
 export function createDefaultMediaUserData(userId: string, tmdbId: number, kind: MediaKind): MediaUserData {
