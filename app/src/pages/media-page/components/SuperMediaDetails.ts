@@ -1,6 +1,6 @@
 import { INavigationOptions, Params, RouteNode } from "@aurelia/router";
 import { fromState } from "@aurelia/state";
-import { TMDB, TVShow, TMDBResponseList, TVShowItem, TVShowCreditsResponse, Movie, MovieItem, MovieCreditsResponse, MoviesAPI, TVShowsAPI, TVSeason, TVSeasonsAPI } from "@leandrowkz/tmdb";
+import { TMDB, TVShow, TMDBResponseList, TVShowItem, TVShowCreditsResponse, Movie, MovieItem, MovieCreditsResponse, MoviesAPI, TVShowsAPI, TVSeason, TVSeasonsAPI, TVShowWatchProvidersResponse, MovieWatchProvidersResponse } from "@leandrowkz/tmdb";
 import { Session } from "@supabase/supabase-js";
 import { ILogger, resolve } from "aurelia";
 import { GenresMap } from "src/core/Genres";
@@ -8,6 +8,7 @@ import { MediaKind, MediaUserData } from "src/core/MediaUserData";
 import { SupabaseService } from "src/core/services/SupabaseService";
 import { AppState } from "src/core/state/AppState";
 import { UserDataCache } from "src/core/state/UserDataCache";
+import { isMainMediaKind } from "src/core/Types";
 import { AvailableButtonsPerWatchState, ResetButtonMap, WatchState, WatchStateButton } from "src/core/WatchState";
 
 export interface ISuperMediaDetails<T extends Movie | TVShow | TVSeason> extends INavigationOptions {
@@ -44,6 +45,7 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 	media: T;
 	similar: TMDBResponseList<(MovieItem | TVShowItem)[]> | null;
 	credits: MovieCreditsResponse | TVShowCreditsResponse | null;
+	providers: MovieWatchProvidersResponse | TVShowWatchProvidersResponse | null;
 
 	abstract get mediaKind(): MediaKind;
 	abstract get api(): MoviesAPI | TVShowsAPI;
@@ -54,6 +56,11 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 	abstract get releaseDate(): string;
 	abstract get releaseYear(): string;
 	abstract get overview(): string;
+
+	// TODO: Make dynamic based on user location (Country)
+	public get locale() {
+		return "CA"; // "US"
+	}
 
 	canLoad(params: Params) {
 		this.mediaId = parseInt(params.id ?? '');
@@ -75,10 +82,50 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 		this.super_logger.debug('Loaded Media credits:', this.credits);
 		// next.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
 		// current.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
+		this.providers = await this.api.watchProviders(this.mediaId);
+		this.super_logger.debug('Loaded Media watch providers:', this.providers);
+		this.providers.results = this.providers.results[this.locale];
+	}
+
+	//#region Components templates
+	public get rightBarTemplate() {
+		return import('../components/right-bar/RightBar.html').then(m => m.default);
+	}
+
+	public get stateControlsTemplate() {
+		return import('../components/state-controls/StateControls.html').then(m => m.default);
+	}
+	//#endregion
+
+	public get networkLogoPath(): string | null {
+		if (isMainMediaKind(this.mediaKind) && this.mediaKind === MediaKind.TVShow) {
+			const tvShow = this.media as TVShow;
+			if (tvShow.networks && tvShow.networks.length > 0) {
+				return `https://image.tmdb.org/t/p/original${tvShow.networks[0].logo_path}`;
+			}
+		}
+		return null;
+	} 
+
+	public searchEngines() {
+		let codedTitle = encodeURIComponent(this.title);
+		return [
+			{
+				name: 'Google',
+				url: `https://www.google.com/search?q=${codedTitle + ' ' + this.releaseYear}`,
+			}
+		]
 	}
 
 	public async fetchDetails() {
-		this.media = await this.api.details(this.mediaId) as T;
+		this.media = await this.api.details(this.mediaId, {
+			append_to_response: [
+				"cast",
+				"movies",
+				"tv",
+				"videos"
+			]
+		}) as T;
 	}
 	public async fetchCredits() {
 		this.credits = await this.api.credits(this.mediaId);

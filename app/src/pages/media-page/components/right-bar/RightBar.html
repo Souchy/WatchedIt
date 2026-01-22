@@ -1,0 +1,15 @@
+<div class="media_page_right_bar_links">
+  <h5>Links</h5>
+  <a if.bind="media.homepage" href.bind="media.homepage" target="_blank" rel="noopener noreferrer">
+    <img if.bind="networkLogoPath" src.bind="networkLogoPath" alt="Homepage Icon" />
+    <template else>Homepage</template>
+    <i class="fi fi-rr-arrow-up-right-from-square"></i>
+  </a>
+  <div repeat.for="engine of searchEngines()">
+    <a href.bind="engine.url" target="_blank" rel="noopener noreferrer">${engine.name} <i class="fi fi-rr-arrow-up-right-from-square"></i></a>
+  </div>
+  <h5>Genres</h5>
+  <div repeat.for="genre of media.genres">
+    <span>${genre.name}</span>
+  </div>
+</div>

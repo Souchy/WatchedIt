@@ -48,48 +48,6 @@ movie-page {
 	// 	}
 	// }
 
-	.state-controls {
-		display: flex;
-		gap: 0.5rem;
-		flex-direction: row;
-
-		.btn-state,
-		.reset-button {
-			background-color: transparent;
-			display: flex; // for icon centering
-			justify-content: center; // Align items horizontally center
-
-			i {
-				font-size: 1rem;
-				color: rgb(223, 223, 223);
-				height: 100%;
-			}
-
-			i::before {
-				display: block;
-			}
-
-			&:hover,
-			&:focus-visible,
-			&:focus-within {
-				background-color: transparent;
-				text-shadow: 0px 0px 0px transparent; // forces reflow / layout rendering recalculation
-
-				i {
-					text-shadow:
-						0 0 1px var(--glow-color),
-						0 0 1px var(--glow-color),
-						0 0 1px var(--glow-color),
-						0 0 2px var(--glow-color),
-						0 0 2px var(--glow-color),
-						0 0 2px var(--glow-color),
-						0 0 3px var(--glow-color),
-					;
-				}
-			}
-		}
-	}
-
 	>header,
 	>section {
 		margin: 40px;
