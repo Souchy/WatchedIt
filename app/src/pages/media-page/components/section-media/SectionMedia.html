@@ -1,0 +1,27 @@
+<section class="media_section">
+  <header>
+    <h2>Media</h2>
+    <h3 click.trigger="activeMediaTab = 'Trailers'" active.class="activeMediaTab == 'Trailers'">Trailers</h3>
+    <h3 click.trigger="activeMediaTab = 'Teasers'" active.class="activeMediaTab == 'Teasers'" if.bind="videoTeasers?.length > 0">Teasers</h3>
+    <h3 click.trigger="activeMediaTab = 'AllVideos'" active.class="activeMediaTab == 'AllVideos'">All Videos</h3>
+    <!-- <h3 click.trigger="activeMediaTab = 'Posters'" active.class="activeMediaTab == 'Posters'">Posters</h3>
+    <h3 click.trigger="activeMediaTab = 'Backdrops'" active.class="activeMediaTab == 'Backdrops'">Backdrops</h3> -->
+  </header>
+  <template switch.bind="activeMediaTab">
+    <template case="Trailers">
+      <iframe repeat.for="video of videoTrailers" width="420" height="315" src="https://www.youtube.com/embed/${video.key}"></iframe>
+    </template>
+    <template case="Teasers">
+      <iframe repeat.for="video of videoTeasers" width="420" height="315" src="https://www.youtube.com/embed/${video.key}"></iframe>
+    </template>
+    <template case="AllVideos">
+      <iframe repeat.for="video of allVideos" width="420" height="315" src="https://www.youtube.com/embed/${video.key}"></iframe>
+    </template>
+    <!-- <template case="Posters">
+      <img repeat.for="poster of media.images.posters" width="200" src.bind="api.getImageUrl(poster.file_path, 'w300')" alt.bind="`Poster: ${poster.iso_639_1 || 'N/A'}`" />
+    </template>
+    <template case="Backdrops">
+      <img repeat.for="backdrop of media.images.backdrops" width="300" src.bind="api.getImageUrl(backdrop.file_path, 'w300')" alt.bind="`Backdrop: ${backdrop.iso_639_1 || 'N/A'}`" />
+    </template> -->
+  </template>
+</section>

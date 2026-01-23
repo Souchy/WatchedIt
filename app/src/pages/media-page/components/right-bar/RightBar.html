@@ -5,7 +5,7 @@
     <template else>Homepage</template>
     <i class="fi fi-rr-arrow-up-right-from-square"></i>
   </a>
-  <div repeat.for="engine of searchEngines()">
+  <div repeat.for="engine of searchEngines">
     <a href.bind="engine.url" target="_blank" rel="noopener noreferrer">${engine.name} <i class="fi fi-rr-arrow-up-right-from-square"></i></a>
   </div>
   <h5>Genres</h5>

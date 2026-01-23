@@ -1,15 +1,23 @@
 import { INavigationOptions, Params, RouteNode } from "@aurelia/router";
 import { fromState } from "@aurelia/state";
-import { TMDB, TVShow, TMDBResponseList, TVShowItem, TVShowCreditsResponse, Movie, MovieItem, MovieCreditsResponse, MoviesAPI, TVShowsAPI, TVSeason, TVSeasonsAPI, TVShowWatchProvidersResponse, MovieWatchProvidersResponse } from "@leandrowkz/tmdb";
+import { TMDB, TVShow, TMDBResponseList, TVShowItem, TVShowCreditsResponse, Movie, MovieItem, MovieCreditsResponse, MoviesAPI, TVShowsAPI, TVSeason, TVSeasonsAPI, TVShowWatchProvidersResponse, MovieWatchProvidersResponse, Video } from "@leandrowkz/tmdb";
 import { Session } from "@supabase/supabase-js";
 import { ILogger, resolve } from "aurelia";
 import { GenresMap } from "src/core/Genres";
 import { MediaKind, MediaUserData } from "src/core/MediaUserData";
 import { SupabaseService } from "src/core/services/SupabaseService";
-import { AppState } from "src/core/state/AppState";
+import { AppState, SearchEngine } from "src/core/state/AppState";
 import { UserDataCache } from "src/core/state/UserDataCache";
 import { isMainMediaKind } from "src/core/Types";
 import { AvailableButtonsPerWatchState, ResetButtonMap, WatchState, WatchStateButton } from "src/core/WatchState";
+
+export enum SectionMediasTab {
+	Trailers = "Trailers",
+	Teasers = "Teasers",
+	AllVideos = "AllVideos",
+	Posters = "Posters",
+	Backdrops = "Backdrops"
+}
 
 export interface ISuperMediaDetails<T extends Movie | TVShow | TVSeason> extends INavigationOptions {
 	mediaId: number;
@@ -39,6 +47,8 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 	protected session: Session | null = null;
 	@fromState((state: AppState) => state.mediaUserDataCache)
 	protected userDataCache!: UserDataCache;
+	@fromState((state: AppState) => state.searchEngines)
+	protected appSearchEngines!: SearchEngine[];
 
 	mediaId: number;
 	seasonId: number;
@@ -46,7 +56,10 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 	similar: TMDBResponseList<(MovieItem | TVShowItem)[]> | null;
 	credits: MovieCreditsResponse | TVShowCreditsResponse | null;
 	providers: MovieWatchProvidersResponse | TVShowWatchProvidersResponse | null;
+	videos: Video[] = [];
+	activeMediaTab: SectionMediasTab = SectionMediasTab.Trailers;
 
+	//#region Properties
 	abstract get mediaKind(): MediaKind;
 	abstract get api(): MoviesAPI | TVShowsAPI;
 
@@ -57,10 +70,37 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 	abstract get releaseYear(): string;
 	abstract get overview(): string;
 
-	// TODO: Make dynamic based on user location (Country)
 	public get locale() {
 		return "CA"; // "US"
 	}
+	public get videoTrailers() {
+		return this.videos.filter(v => v.type === "Trailer");
+	}
+	public get videoTeasers() {
+		return this.videos.filter(v => v.type as string === "Teaser");
+	}
+	public get allVideos() {
+		return this.videos;
+	}
+	public get networkLogoPath(): string | null {
+		if (isMainMediaKind(this.mediaKind) && this.mediaKind === MediaKind.TVShow) {
+			const tvShow = this.media as TVShow;
+			if (tvShow.networks && tvShow.networks.length > 0) {
+				return `https://image.tmdb.org/t/p/original${tvShow.networks[0].logo_path}`;
+			}
+		}
+		return null;
+	}
+	public get searchEngines() {
+		const codedTitle = encodeURIComponent(this.title);
+		return this.appSearchEngines.map(engine => {
+			return {
+				name: engine.name,
+				url: engine.url.replace('%s', codedTitle + (engine.includeYear ? ' ' + this.releaseYear : '')),
+			}
+		});
+	}
+	//#endregion
 
 	canLoad(params: Params) {
 		this.mediaId = parseInt(params.id ?? '');
@@ -75,68 +115,58 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 		await this.fetchDetails();
 		this.setDocumentTitle();
 		this.super_logger.debug('Loaded Media details:', this.media);
-		await this.moreSimilar();
+
+		await this.fetchMoreSimilar();
+
 		await this.fetchCredits();
 		// this.credits.cast.sort((a, b) => a.order - b.order);
 		this.credits.crew.sort((a, b) => b.popularity - a.popularity);
 		this.super_logger.debug('Loaded Media credits:', this.credits);
-		// next.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
-		// current.title = this.title + ' (' + this.releaseYear + ') - Watchedit';
+
 		this.providers = await this.api.watchProviders(this.mediaId);
 		this.super_logger.debug('Loaded Media watch providers:', this.providers);
 		this.providers.results = this.providers.results[this.locale];
+
+		await this.fetchVideos();
 	}
 
 	//#region Components templates
 	public get rightBarTemplate() {
 		return import('../components/right-bar/RightBar.html').then(m => m.default);
 	}
-
 	public get stateControlsTemplate() {
 		return import('../components/state-controls/StateControls.html').then(m => m.default);
 	}
+	public get sectionMediaTemplate() {
+		return import('../components/section-media/SectionMedia.html').then(m => m.default);
+	}
 	//#endregion
 
-	public get networkLogoPath(): string | null {
-		if (isMainMediaKind(this.mediaKind) && this.mediaKind === MediaKind.TVShow) {
-			const tvShow = this.media as TVShow;
-			if (tvShow.networks && tvShow.networks.length > 0) {
-				return `https://image.tmdb.org/t/p/original${tvShow.networks[0].logo_path}`;
-			}
-		}
-		return null;
-	} 
 
-	public searchEngines() {
-		let codedTitle = encodeURIComponent(this.title);
-		return [
-			{
-				name: 'Google',
-				url: `https://www.google.com/search?q=${codedTitle + ' ' + this.releaseYear}`,
-			}
-		]
-	}
-
+	//#region Fetching data
 	public async fetchDetails() {
 		this.media = await this.api.details(this.mediaId, {
 			append_to_response: [
-				"cast",
-				"movies",
-				"tv",
-				"videos"
-			]
+				"credits",
+				"videos",
+				"images"
+			] as any
 		}) as T;
 	}
 	public async fetchCredits() {
-		this.credits = await this.api.credits(this.mediaId);
+		this.credits = 'credits' in this.media
+			? (this.media as any).credits
+			: await this.api.credits(this.mediaId);
 	}
-
-	// Dynamically set the document title
-	private setDocumentTitle() {
-		document.title = this.title + ' (' + this.releaseYear + ')'; // - Watchedit';
+	public async fetchVideos() {
+		const videos = 'videos' in this.media
+			? this.media.videos as { results: Video[] }
+			: await this.api.videos(this.mediaId);
+		this.videos = videos.results.sort((a: Video, b: Video) => {
+			return new Date(a.published_at).getTime() - new Date(b.published_at).getTime();
+		});
 	}
-
-	public async moreSimilar() {
+	public async fetchMoreSimilar() {
 		if (!this.similar) {
 			this.similar = await this.api.recommendations(this.mediaId); // similar(this.mediaId);
 			this.super_logger.debug('Loaded similar Medias:', this.similar);
@@ -150,6 +180,13 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 		this.similar.total_results = newSimilar.total_results;
 		this.super_logger.debug('Loaded more similar Medias, page', nextPage, ':', newSimilar);
 	}
+	//#endregion
+
+	// Dynamically set the document title
+	private setDocumentTitle() {
+		document.title = this.title + ' (' + this.releaseYear + ')'; // - Watchedit';
+	}
+
 
 	//#region State properties
 	public get availableWatchStateButtons(): WatchStateButton[] {
