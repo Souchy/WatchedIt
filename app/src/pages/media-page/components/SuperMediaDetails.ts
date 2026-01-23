@@ -149,7 +149,9 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 			append_to_response: [
 				"credits",
 				"videos",
-				"images"
+				"images",
+				"keywords",
+				"created_by"
 			] as any
 		}) as T;
 	}

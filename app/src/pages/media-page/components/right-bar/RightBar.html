@@ -12,4 +12,16 @@
   <div repeat.for="genre of media.genres">
     <span>${genre.name}</span>
   </div>
+  <template if.bind="media.keywords?.keywords?.length > 0">
+    <h5>Keywords</h5>
+    <div repeat.for="keyword of media.keywords.keywords">
+      <span>${keyword.name}</span>
+    </div>
+  </template>
+  <template if.bind="media.keywords?.results?.length > 0">
+    <h5>Keywords</h5>
+    <div repeat.for="keyword of media.keywords.results">
+      <span>${keyword.name}</span>
+    </div>
+  </template>
 </div>
