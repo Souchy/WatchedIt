@@ -30,6 +30,8 @@ import { PersonPage } from './pages/person-page/PersonPage';
 import { NewsPage } from './pages/news-page/NewsPage';
 import { I18N } from '@aurelia/i18n';
 import { SeasonList } from './pages/media-page/tvshow-page/season-list/SeasonList';
+import { SearchEngines } from './pages/settings-page/search-engines/SearchEngines';
+import { AppStorageLoader } from './core/state/AppStateStorage';
 
 const supabase = createClient(import.meta.env.VITE_SUPABASE_URL, import.meta.env.VITE_SUPABASE_KEY, {
   auth: {
@@ -106,16 +108,20 @@ au.register(RouterConfiguration.customize({
   basePath: '/',
 }));
 
+//  Load initial state
+AppStorageLoader.loadSearchEngines(initialState);
+
 // Services
 au.register(StateDefaultConfiguration.init(initialState, appStateHandler));
 au.register(Registration.instance(TMDB, tmdb));
 au.register(Registration.instance(SupabaseClient, supabase));
 au.register(Registration.singleton(SupabaseService, SupabaseService));
 au.register(Registration.instance(GenresMap, genresMap));
+// au.register(Registration.singleton(AppStateStorage, AppStateStorage));
 // Components
 au.register(SouchyAu);
 au.register(MoviePage, HomePage, MissingPage, AboutPage, WelcomePage, CallbackPage, TvShowPage, MyListPage, PersonPage, NewsPage);
-au.register(TrendingMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar, CastList, CrewList, SeasonList);
+au.register(TrendingMovies, MovieList, MovieMini, AuthModule, AuthSignin, Navbar, CastList, CrewList, SeasonList, SearchEngines);
 
 
 await au.app(MyApp).start();

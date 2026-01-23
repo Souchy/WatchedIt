@@ -14,6 +14,7 @@ import { MyListPage } from './pages/my-list-page/MyListPage';
 import { PersonPage } from './pages/person-page/PersonPage';
 import { NewsPage } from './pages/news-page/NewsPage';
 import { SeasonPage } from './pages/media-page/season-page/SeasonPage';
+import { SettingsPage } from './pages/settings-page/SettingsPage';
 
 @route({
   routes: [
@@ -23,13 +24,14 @@ import { SeasonPage } from './pages/media-page/season-page/SeasonPage';
       component: AboutPage,
       title: 'About',
     },
+    SettingsPage,
     MoviePage,
     TvShowPage,
     PersonPage,
     SearchPage,
     MyListPage,
     NewsPage,
-    SeasonPage
+    SeasonPage,
   ],
   fallback: MissingPage,
 })

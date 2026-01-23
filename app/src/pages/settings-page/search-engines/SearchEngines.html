@@ -1,0 +1,24 @@
+<div>
+  <h2>Search engines</h2>
+  <p>Manage your custom search engines here. From a media page, you'll be able to search the media on these sites.</p>
+  <p>In the URL, replace the search query with <b>%s</b>.</p>
+</div>
+<button click.trigger="addSearchEngine()">Add</button>
+
+<div repeat.for="engine of searchEngines" class="engine">
+  <div>
+    <label for="name-${engine.name}">Name</label>
+    <input type="text" value.bind="engine.name" placeholder="Search Engine Name" id="name-${engine.name}" keyup.trigger="saveSearchEngines()" />
+  </div>
+  <div>
+    <label for="url-${engine.name}">Url</label>
+    <input type="text" value.bind="engine.url" placeholder="Search Engine URL" id="url-${engine.name}" keyup.trigger="saveSearchEngines()" />
+  </div>
+  <div>
+    <label for="includeYear-${engine.name}">Include release year in the search</label>
+    <input type="checkbox" checked.bind="engine.includeYear" id="includeYear-${engine.name}" change.trigger="saveSearchEngines()" />
+  </div>
+  <div class="divbtn">
+    <button click.trigger="removeSearchEngine($index)">Remove</button>
+  </div>
+</div>
