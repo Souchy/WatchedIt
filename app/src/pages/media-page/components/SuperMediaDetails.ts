@@ -10,6 +10,12 @@ import { AppState, SearchEngine } from "src/core/state/AppState";
 import { UserDataCache } from "src/core/state/UserDataCache";
 import { isMainMediaKind } from "src/core/Types";
 import { AvailableButtonsPerWatchState, ResetButtonMap, WatchState, WatchStateButton } from "src/core/WatchState";
+import rightBarHtml from '../components/right-bar/RightBar.html?raw';
+import stateControlsHtml from '../components/state-controls/StateControls.html?raw';
+import sectionMediaHtml from '../components/section-media/SectionMedia.html?raw';
+import './right-bar/RightBar.scss'
+import './section-media/SectionMedia.scss'
+import './state-controls/StateControls.scss'
 
 export enum SectionMediasTab {
 	Trailers = "Trailers",
@@ -132,13 +138,16 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 
 	//#region Components templates
 	public get rightBarTemplate() {
-		return import('../components/right-bar/RightBar.html').then(m => m.default);
+		// return import('../components/right-bar/RightBar.html?raw').then(m => m.default);
+		return rightBarHtml;
 	}
 	public get stateControlsTemplate() {
-		return import('../components/state-controls/StateControls.html').then(m => m.default);
+		// return import('../components/state-controls/StateControls.html?raw').then(m => m.default);
+		return stateControlsHtml;
 	}
 	public get sectionMediaTemplate() {
-		return import('../components/section-media/SectionMedia.html').then(m => m.default);
+		// return import('../components/section-media/SectionMedia.html?raw').then(m => m.default);
+		return sectionMediaHtml;
 	}
 	//#endregion
 
