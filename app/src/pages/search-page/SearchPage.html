@@ -7,11 +7,11 @@
 
   <section>
     <header>Format</header>
-    <select value.bind="filter.format">
-      <option value="all">All</option>
-      <option value="0">Movies</option>
-      <option value="1">TV Shows</option>
-      <option value="2">People</option>
+    <select value.bind="filter.format" matcher.bind="kindMatcher">
+      <option model.bind="'all'">All</option>
+      <option model.bind="MediaKind.Movie">Movies</option>
+      <option model.bind="MediaKind.TVShow">TV Shows</option>
+      <option model.bind="MediaKind.Person">People</option>
     </select>
   </section>
 

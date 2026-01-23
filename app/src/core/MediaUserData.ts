@@ -12,10 +12,10 @@ export interface MediaUserData {
 	rating?: number | null;
 	watch_start_date?: string | null;
 	watch_completed_date?: string | null;
-	
+
 	like: boolean;
 	dislike: boolean;
-	
+
 	// Tv Season specific
 	completed_episodes: number;
 	tmdb_show_id?: number;
@@ -27,6 +27,39 @@ export enum MediaKind {
 	TVShow = 1,
 	People = 2,
 	TVSeason = 3,
+}
+export namespace MediaKind {
+	export function toString(kind: MediaKind | 'all'): string {
+		console.log('MediaKind.toString called with kind:', kind);
+		switch (kind) {
+			case MediaKind.Movie:
+				return 'Movie';
+			case MediaKind.TVShow:
+				return 'TV Show';
+			case MediaKind.People:
+				return 'People';
+			case MediaKind.TVSeason:
+				return 'TV Season';
+			default:
+				return 'all';
+		}
+	}
+	export function fromString(kind: string | null): MediaKind | 'all' {
+		switch (kind?.toLowerCase()) {
+			case 'movie':
+				return MediaKind.Movie;
+			case 'tvshow':
+			case 'tv show':
+				return MediaKind.TVShow;
+			case 'people':
+				return MediaKind.People;
+			case 'tvseason':
+			case 'tv season':
+				return MediaKind.TVSeason;
+			default:
+				return 'all';
+		}
+	}
 }
 
 export function createDefaultMediaUserData(userId: string, tmdbId: number, kind: MediaKind): MediaUserData {

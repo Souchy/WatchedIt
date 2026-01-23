@@ -1,4 +1,4 @@
-import { route } from "@aurelia/router";
+import { IRouter, Params, route, RouteNode } from "@aurelia/router";
 import { ILogger, inject, observable, resolve, watch } from "aurelia";
 import { MoviePage } from "../media-page/movie-page/MoviePage";
 import { AppState } from "src/core/state/AppState";
@@ -37,7 +37,9 @@ export class TMDBSearchFilters {
 	format: MediaKind | 'all' = 'all';
 	language?: LanguageCode = 'en-US';
 	include_adult: boolean = false;
-	year?: number;
+	year?: number | undefined = undefined;
+	genres: string[] = [];
+	keywords: string[] = [];
 }
 
 @route({
@@ -51,10 +53,14 @@ export class TMDBSearchFilters {
 @watch('filter.language', 'search', { flush: 'async' })
 @watch('filter.include_adult', 'search', { flush: 'async' })
 @watch('filter.year', 'search', { flush: 'async' })
+@watch('filter.genres', 'search', { flush: 'async' })
+@watch('filter.keywords', 'search', { flush: 'async' })
 export class SearchPage {
+	MediaKind = MediaKind; // make enum available to the template
 	private readonly logger: ILogger = resolve(ILogger).scopeTo('SearchPage');
 	private readonly supabase: SupabaseService = resolve(SupabaseService);
 	private readonly tmdb: TMDB = resolve(TMDB);
+	private readonly router = resolve(IRouter);
 
 	@fromState((state: AppState) => state.session)
 	public session!: Session | null;
@@ -82,15 +88,22 @@ export class SearchPage {
 	private filter: TMDBSearchFilters = new TMDBSearchFilters();
 	private debounceTimeout: NodeJS.Timeout | null = null;
 
+	readonly kindMatcher = (a: MediaKind | 'all', b: MediaKind | 'all') => {
+		return a === b;
+	}
 
 	// private results: TMDBResponseList<Array<MediaUserDataKind & { details: (TVShowItem | MovieItem) }>> | null = null;
 	private results: TMDBResponseList<Array<MediaKindItem>> | null = null;
 
-
-	public constructor(private readonly store: IStore<AppState, AppAction>) {
+	
+	public bound() {
+		// we have to be bound so that the UI updates when we set the filter.
+		this.fromQueryString();
+		this.search();
 	}
 
 	public attached() {
+		// if (this.filter.query !== '')
 		this.searchEle.focus();
 	}
 
@@ -99,6 +112,7 @@ export class SearchPage {
 	}
 
 	public search() {
+		this.updateUrl();
 		if (!this.filter.query || this.filter.query.trim() === '') {
 			this.results = null;
 			return;
@@ -113,6 +127,51 @@ export class SearchPage {
 			this.searchMore(); // Call the search function
 		}, 300); // Wait 300ms after the user stops typing
 	}
+
+	// Update URL when filters change, WITHOUT creating a history entry
+	private updateUrl(): void {
+		const qs = this.toQueryString();
+		this.router.load("search", {
+			historyStrategy: 'replace',
+			queryParams: qs ? Object.fromEntries(qs) : {},
+		})
+	}
+	// Convert filters -> query string
+	private toQueryString(): URLSearchParams {
+		const sp = new URLSearchParams();
+		if (this.filter.query)
+			sp.set('query', this.filter.query);
+		if (this.filter.format !== 'all') {
+			// this.logger.debug('Adding format to query string filter:', this.filter.format, MediaKind.toString(this.filter.format), MediaKind[this.filter.format]);
+			sp.set('format', MediaKind[this.filter.format]);
+		}
+		for (const genre of this.filter.genres)
+			sp.append('genres', genre);
+		for (const keyword of this.filter.keywords)
+			sp.append('keywords', keyword);
+		if (this.filter.year !== undefined)
+			sp.set('year', String(this.filter.year));
+		if (this.filter.include_adult)
+			sp.set('adult', String(this.filter.include_adult));
+		// if (this.filter.language) sp.set('language', this.filter.language);
+
+		this.logger.debug('Update url filter string params:', Object.fromEntries(sp));
+		return sp;
+	}
+	private fromQueryString(): void {
+		const sp = new URLSearchParams(window.location.search);
+		this.logger.debug('SearchPage loading with url search filter:', Object.fromEntries(sp));
+		this.filter.query = sp.get('query') || '';
+		// this.logger.debug('Parsed filter format:', sp.get('format'), MediaKind.fromString(sp.get('format')));
+		this.filter.format = MediaKind.fromString(sp.get('format'));
+		this.filter.genres = sp.getAll('genres');
+		this.filter.keywords = sp.getAll('keywords');
+		this.filter.year = sp.get('year') ? parseInt(sp.get('year') as string) : undefined;
+		this.filter.include_adult = sp.get('adult') === 'true';
+		this.filter.language = (sp.get('language') as LanguageCode) || 'en-US';
+		this.logger.debug('Loading with filter:', this.filter);
+	}
+
 
 	private async searchMore() {
 		const nextPage = (this.results?.page || 0) + 1;
@@ -145,6 +204,9 @@ export class SearchPage {
 		// 	with_people: ['500', '600'],
 		// 	with_cast: ['500', '600'],
 		// 	with_crew: ['500', '600'],
+		// })
+		// this.tmdb.discover.movies({
+		// 	with_keywords: ['science-fiction'],
 		// })
 
 		let movieFilter: SearchMoviesFilters = {
