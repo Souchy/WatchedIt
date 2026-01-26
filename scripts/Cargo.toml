@@ -1,0 +1,12 @@
+[package]
+name = "scripts"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tmdb_client = { version = "1.8.0", features = ["daily-exports"] }
+chrono = { version = "0.4", features = ["serde"] }
+serde_json = "1.0"
+serde = { version = "1.0", features = ["derive"] }
+dotenvy = "0.15"
+postgres = "0.19"
