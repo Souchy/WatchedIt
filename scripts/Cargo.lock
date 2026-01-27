@@ -964,6 +964,18 @@ dependencies = [
 ]
 
 [[package]]
+name = "postgres-openssl"
+version = "0.5.2"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "8f86f073ad570f76e9e278ce6f05775fc723eed7daa6b4f9c2aa078080a564a0"
+dependencies = [
+ "openssl",
+ "tokio",
+ "tokio-openssl",
+ "tokio-postgres",
+]
+
+[[package]]
 name = "postgres-protocol"
 version = "0.6.10"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -992,6 +1004,7 @@ dependencies = [
  "postgres-protocol",
  "serde_core",
  "serde_json",
+ "uuid",
 ]
 
 [[package]]
@@ -1217,11 +1230,14 @@ version = "0.1.0"
 dependencies = [
  "chrono",
  "dotenvy",
+ "openssl",
  "postgres",
+ "postgres-openssl",
  "postgres-types",
  "serde",
  "serde_json",
  "tmdb_client",
+ "uuid",
 ]
 
 [[package]]
@@ -1575,6 +1591,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "tokio-openssl"
+version = "0.6.5"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "59df6849caa43bb7567f9a36f863c447d95a11d5903c9cc334ba32576a27eadd"
+dependencies = [
+ "openssl",
+ "openssl-sys",
+ "tokio",
+]
+
+[[package]]
 name = "tokio-postgres"
 version = "0.7.16"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1738,6 +1765,16 @@ name = "utf8_iter"
 version = "1.0.4"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "b6c140620e7ffbb22c2dee59cafe6084a59b5ffc27a8859a5f0d494b5d52b6be"
+
+[[package]]
+name = "uuid"
+version = "1.20.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "ee48d38b119b0cd71fe4141b30f5ba9c7c5d9f4e7a3a8b4a674e4b6ef789976f"
+dependencies = [
+ "js-sys",
+ "wasm-bindgen",
+]
 
 [[package]]
 name = "vcpkg"

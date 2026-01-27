@@ -1,17 +1,17 @@
 use std::error::Error;
 use tmdb_client::{apis::client::APIClient, models::CollectionObject};
-use postgres::Client as PgClient;
+use postgres::Client as DbClient;
 
-pub fn fetch_collection(api: &APIClient, pg: &mut PgClient, _kind: &str, id: i32) -> Result<(), Box<dyn Error>> {
+pub fn fetch_collection(api: &APIClient, pg: &mut DbClient, _kind: &str, id: i32) -> Result<(), Box<dyn Error>> {
     let d = api.collections_api().get_collection_details(id, None)?;
     upsert_collection(pg, id, &d)?;
     Ok(())
 }
 
-pub fn upsert_collection(pg: &mut PgClient, id: i32, v: &CollectionObject) -> Result<(), Box<dyn Error>> {
+pub fn upsert_collection(pg: &mut DbClient, id: i32, v: &CollectionObject) -> Result<(), Box<dyn Error>> {
     pg.batch_execute(
         "CREATE TABLE IF NOT EXISTS tmdb_collection (
-            id INTEGER PRIMARY KEY,
+            id INT4 PRIMARY KEY,
             name TEXT,
             overview TEXT,
 			poster_path TEXT,

@@ -1,17 +1,17 @@
 use std::error::Error;
 use tmdb_client::{apis::client::APIClient, models::Keyword};
-use postgres::Client as PgClient;
+use postgres::Client as DbClient;
 
-pub fn fetch_keyword(api: &APIClient, pg: &mut PgClient, _kind: &str, id: i32) -> Result<(), Box<dyn Error>> {
+pub fn fetch_keyword(api: &APIClient, pg: &mut DbClient, _kind: &str, id: i32) -> Result<(), Box<dyn Error>> {
     let d = api.keywords_api().get_keyword_details(id)?;
     upsert_keyword(pg, id, &d)?;
     Ok(())
 }
 
-pub fn upsert_keyword(pg: &mut PgClient, id: i32, v: &Keyword) -> Result<(), Box<dyn Error>> {
+pub fn upsert_keyword(pg: &mut DbClient, id: i32, v: &Keyword) -> Result<(), Box<dyn Error>> {
     pg.batch_execute(
         "CREATE TABLE IF NOT EXISTS tmdb_keyword (
-            id INTEGER PRIMARY KEY,
+            id INT4 PRIMARY KEY,
             name TEXT,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
         )",

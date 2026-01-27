@@ -1,17 +1,17 @@
 use std::error::Error;
 use tmdb_client::{apis::client::APIClient, models::PersonDetails};
-use postgres::Client as PgClient;
+use postgres::Client as DbClient;
 
-pub fn fetch_person(api: &APIClient, pg: &mut PgClient, _kind: &str, id: i32) -> Result<(), Box<dyn Error>> {
+pub fn fetch_person(api: &APIClient, pg: &mut DbClient, _kind: &str, id: i32) -> Result<(), Box<dyn Error>> {
     let d = api.people_api().get_person_details(id, None, None, None)?;
     upsert_person(pg, id, &d)?;
     Ok(())
 }
 
-pub fn upsert_person(pg: &mut PgClient, id: i32, v: &PersonDetails) -> Result<(), Box<dyn Error>> {
+pub fn upsert_person(pg: &mut DbClient, id: i32, v: &PersonDetails) -> Result<(), Box<dyn Error>> {
     pg.batch_execute(
         "CREATE TABLE IF NOT EXISTS tmdb_person (
-            id INTEGER PRIMARY KEY,
+            id INT4 PRIMARY KEY,
             name TEXT,
             biography TEXT,
             popularity REAL,

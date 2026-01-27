@@ -1,10 +1,10 @@
-use postgres::Client as PgClient;
+use postgres::Client as DbClient;
 use std::error::Error;
 use tmdb_client::{apis::client::APIClient, models::Network};
 
 pub fn fetch_network(
     api: &APIClient,
-    pg: &mut PgClient,
+    pg: &mut DbClient,
     _kind: &str,
     id: i32,
 ) -> Result<(), Box<dyn Error>> {
@@ -13,10 +13,10 @@ pub fn fetch_network(
     Ok(())
 }
 
-pub fn upsert_network(pg: &mut PgClient, id: i32, v: &Network) -> Result<(), Box<dyn Error>> {
+pub fn upsert_network(pg: &mut DbClient, id: i32, v: &Network) -> Result<(), Box<dyn Error>> {
     pg.batch_execute(
         "CREATE TABLE IF NOT EXISTS tmdb_network (
-			id INTEGER PRIMARY KEY,
+			id INT4 PRIMARY KEY,
 			name TEXT,
 			logopath TEXT,
 			origin_country TEXT,

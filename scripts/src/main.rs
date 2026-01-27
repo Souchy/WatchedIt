@@ -1,13 +1,20 @@
 use std::env;
+use std::path::Path;
 use std::time::Duration;
 use std::{error::Error, thread::sleep};
 
 use dotenvy::dotenv;
-use postgres::{Client as PgClient, NoTls};
+use postgres::{Client, NoTls};
 use serde_json::Value;
 use tmdb_client::apis::client::APIClient;
 
-type FetchFn = fn(&APIClient, &mut PgClient, &str, i32) -> Result<(), Box<dyn Error>>;
+use openssl::error::ErrorStack;
+use openssl::ssl::{SslConnector, SslMethod};
+use postgres::{Transaction, error::SqlState};
+use postgres_openssl::MakeTlsConnector;
+use uuid::Uuid;
+
+type FetchFn = fn(&APIClient, &mut Client, &str, i32) -> Result<(), Box<dyn Error>>;
 mod collection;
 mod company;
 mod keyword;
@@ -15,6 +22,34 @@ mod movies;
 mod network;
 mod person;
 mod tv;
+
+fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
+    let ca_file_path = if cfg!(target_os = "windows") {
+        format!(
+            "{}\\postgresql\\root.crt",
+            env::var("APPDATA").unwrap_or_else(|_| ".".to_string())
+        )
+    } else {
+        format!(
+            "{}/.postgresql/root.crt",
+            env::var("HOME").unwrap_or_else(|_| ".".to_string())
+        )
+    };
+    
+    eprintln!("Using CA file path: {}", ca_file_path);
+
+    // Verify the existence of the CA file.
+    let ca_file = Path::new(&ca_file_path);
+    if !ca_file.exists() {
+        eprintln!("CA file {} not found!", ca_file_path);
+        return Err(ErrorStack::get()); // Return explicit error.
+    }
+    
+    // Configure OpenSSL with the CA file.
+    let mut builder = SslConnector::builder(SslMethod::tls())?;
+    builder.set_ca_file(ca_file_path)?;
+    Ok(MakeTlsConnector::new(builder.build()))
+}
 
 fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
@@ -30,8 +65,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     };
 
     // connect to Postgres: read DATABASE_URL from .env or env
-    let db_url = env::var("DATABASE_URL").or_else(|_| env::var("POSTGRES_URL"))?;
-    let mut pg = PgClient::connect(&db_url, NoTls)?;
+    // let db_url = env::var("DATABASE_URL").or_else(|_| env::var("POSTGRES_URL"))?;
+    // let mut pg = Client::connect(&db_url, NoTls)?;
+
+    // connect to CockroachDB with SSL
+    let connector = ssl_config().unwrap();
+    let connection_uri = env::var("DATABASE_URL")
+        .expect("$DATABASE_URL is not set")
+        .to_owned()
+        + "&application_name=docs_simplecrud_rust";
+    let mut client = Client::connect(&connection_uri, connector).unwrap();
+    // let mut client = Client::connect(&connection_uri, NoTls).unwrap();
 
     // exports with associated fetch function to call directly
     let exports: &[(&str, FetchFn, f64)] = &[
@@ -89,7 +133,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         for rec in filtered {
             let result = fetch_fn(
                 &api_client,
-                &mut pg,
+                &mut client,
                 export_type,
                 rec.get("id").and_then(|v| v.as_i64()).unwrap() as i32,
             );

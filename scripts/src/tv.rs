@@ -1,11 +1,11 @@
-use postgres::Client as PgClient;
+use postgres::Client as DbClient;
 use std::error::Error;
 use tmdb_client::{apis::client::APIClient, models::TvDetails};
 use postgres::types::Json;
 
 pub fn fetch_tv(
     api: &APIClient,
-    pg: &mut PgClient,
+    pg: &mut DbClient,
     _kind: &str,
     id: i32,
 ) -> Result<(), Box<dyn Error>> {
@@ -14,17 +14,17 @@ pub fn fetch_tv(
     Ok(())
 }
 
-pub fn upsert_tv(pg: &mut PgClient, id: i32, v: &TvDetails) -> Result<(), Box<dyn Error>> {
+pub fn upsert_tv(pg: &mut DbClient, id: i32, v: &TvDetails) -> Result<(), Box<dyn Error>> {
     pg.batch_execute(
         "CREATE TABLE IF NOT EXISTS tmdb_tv_series (
-            id INTEGER PRIMARY KEY,
+            id INT4 PRIMARY KEY,
             name TEXT,
             overview TEXT,
             popularity REAL,
             first_air_date TEXT,
-            number_of_seasons INTEGER,
+            number_of_seasons INT4,
             vote_average REAL,
-            vote_count INTEGER,
+            vote_count INT4,
             homepage TEXT,
             genres JSONB,
             updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
