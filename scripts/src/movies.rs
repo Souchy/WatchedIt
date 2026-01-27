@@ -4,6 +4,8 @@ use tmdb_client::{
     apis::client::APIClient,
     models::{Cast, Crew, MovieDetails},
 };
+use postgres_types::Json;
+// use postgres_types::
 
 pub fn fetch_movie(
     api: &APIClient,
@@ -15,7 +17,7 @@ pub fn fetch_movie(
         id,
         None,
         None,
-        Some("videos,images,keywords,credits"),
+		None, // Some("videos,images,keywords,credits"),
     )?;
 
     // let credits = api.movies_api().get_movie_credits(id)?;
@@ -47,7 +49,7 @@ pub fn upsert_movie(pg: &mut PgClient, id: i32, v: &MovieDetails) -> Result<(), 
 
     pg.execute(
         "INSERT INTO tmdb_movie (id, title, original_title, overview, popularity, release_date, vote_average, vote_count, homepage, backdrop_path, poster_path, status, revenue, genres, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14, now())
+         VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14::jsonb, now())
          ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, original_title=EXCLUDED.original_title, overview=EXCLUDED.overview,
          popularity=EXCLUDED.popularity, release_date=EXCLUDED.release_date, vote_average=EXCLUDED.vote_average, vote_count=EXCLUDED.vote_count,
          homepage=EXCLUDED.homepage, backdrop_path=EXCLUDED.backdrop_path, poster_path=EXCLUDED.poster_path, status=EXCLUDED.status, revenue=EXCLUDED.revenue, genres=EXCLUDED.genres, updated_at=EXCLUDED.updated_at",
@@ -55,17 +57,19 @@ pub fn upsert_movie(pg: &mut PgClient, id: i32, v: &MovieDetails) -> Result<(), 
 			&id,
 			&v.title,
 			&v.original_title,
-			&v.overview, 
+			&v.overview,
 			&v.popularity,
 			&v.release_date,
-			&v.vote_average, 
-			&v.vote_count, 
+			&v.vote_average,
+			&v.vote_count,
 			&v.homepage,
 			&v.backdrop_path,
 			&v.poster_path,
 			&v.status,
 			&v.revenue,
-			&serde_json::to_string(&v.genres)?
+			// &serde_json::to_string(&v.genres.clone().unwrap_or(vec![]))?
+			&Json(&v.genres.clone().unwrap_or(vec![])),
+			// &v.belongs_to_collection // TODO: handle collection
 		],
     )?;
 

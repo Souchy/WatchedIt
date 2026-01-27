@@ -23,6 +23,14 @@ pub fn upsert_company(pg: &mut PgClient, id: i32, v: &CompanyDetails) -> Result<
         "INSERT INTO tmdb_company (id, name, homepage, origin_country, updated_at) VALUES ($1,$2,$3,$4, now())
          ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, homepage=EXCLUDED.homepage, origin_country=EXCLUDED.origin_country, updated_at=EXCLUDED.updated_at",
         &[&id, &v.name, &v.homepage, &v.origin_country],
+		// v.description
+		// v.headquarters
+		// v.homepage
+		// v.id
+		// v.logo_path
+		// v.name
+		// v.origin_country
+		// v.parent_company
     )?;
     Ok(())
 }

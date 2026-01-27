@@ -34,17 +34,17 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut pg = PgClient::connect(&db_url, NoTls)?;
 
     // exports with associated fetch function to call directly
-    let exports: &[(&str, FetchFn)] = &[
-        ("movie", movies::fetch_movie),
-        ("tv_series", tv::fetch_tv),
-        ("person", person::fetch_person),
-        ("collection", collection::fetch_collection),
-        ("production_company", company::fetch_company),
-        ("keyword", keyword::fetch_keyword),
-        ("tv_network", network::fetch_network),
+    let exports: &[(&str, FetchFn, f64)] = &[
+        ("movie", movies::fetch_movie, 2.0),
+        ("tv_series", tv::fetch_tv, 2.0),
+        ("person", person::fetch_person, 1.0),
+        ("keyword", keyword::fetch_keyword, 1.0),
+        ("collection", collection::fetch_collection, 1.0),
+        ("tv_network", network::fetch_network, 1.0),
+        // ("production_company", company::fetch_company, 1.0),
     ];
 
-    for (export_type, fetch_fn) in exports {
+    for (export_type, fetch_fn, min_popularity) in exports {
         eprintln!("processing export type: {}", export_type);
 
         let records_res: Result<Vec<Value>, _> =
@@ -59,31 +59,55 @@ fn main() -> Result<(), Box<dyn Error>> {
 
         eprintln!("{} records for {}", records.len(), export_type);
         let mut i = 0;
-        let len = records.len();
+        let total_count = records.len();
 
-        for rec in records {
-            // filter by popularity from the export record when present
-            if let Some(p) = rec.get("popularity").and_then(|v| v.as_f64()) {
-                if p < 2.0 {
-                    println!(
-                        "skipping {} id {} with low popularity {}",
-                        export_type,
-                        rec.get("id").and_then(|v| v.as_i64()).unwrap_or_default(),
-                        p
-                    );
-                    continue;
+        let filtered = records
+            .iter()
+            .filter(|r| {
+                let pop = r.get("popularity").and_then(|v| v.as_f64());
+                let adult = r.get("adult").and_then(|v| v.as_bool());
+                if let Some(pop_val) = pop
+                    && pop_val < *min_popularity
+                {
+                    return false;
                 }
-            }
-            fetch_fn(
+                if let Some(adult_val) = adult
+                    && adult_val
+                {
+                    return false;
+                }
+                // return pop.unwrap() >= 1.0;
+                return true;
+            })
+            .collect::<Vec<_>>();
+        let filtered_count = filtered.len();
+        eprintln!(
+            "{} / {} valid object records for {}",
+            filtered_count, total_count, export_type
+        );
+
+        for rec in filtered {
+            let result = fetch_fn(
                 &api_client,
                 &mut pg,
                 export_type,
                 rec.get("id").and_then(|v| v.as_i64()).unwrap() as i32,
-            )?;
-            sleep(Duration::from_millis(20)); // rate limit to 50/sec
+            );
+            if let Err(e) = result {
+                eprintln!(
+                    "error fetching {} id {}: {}",
+                    export_type,
+                    rec.get("id").unwrap(),
+                    e
+                );
+            }
+            sleep(Duration::from_millis(21)); // rate limit to 50/sec
             i += 1;
             if i % 100 == 0 {
-                eprintln!("processed {}/{} records for {}", i, len, export_type);
+                eprintln!(
+                    "processed {}/{} records for {}",
+                    i, filtered_count, export_type
+                );
             }
         }
     }

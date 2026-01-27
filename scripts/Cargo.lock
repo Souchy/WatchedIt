@@ -990,6 +990,8 @@ dependencies = [
  "bytes",
  "fallible-iterator",
  "postgres-protocol",
+ "serde_core",
+ "serde_json",
 ]
 
 [[package]]
@@ -1216,6 +1218,7 @@ dependencies = [
  "chrono",
  "dotenvy",
  "postgres",
+ "postgres-types",
  "serde",
  "serde_json",
  "tmdb_client",
