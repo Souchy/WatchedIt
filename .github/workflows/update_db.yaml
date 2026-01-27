@@ -34,7 +34,12 @@ jobs:
           toolchain: stable
           override: true
 
-      - name: Build and run `scripts` Cargo project
+      - name: Build `scripts` Cargo project
+        working-directory: scripts
+        run: |
+          cargo build --release
+
+      - name: Run `scripts` Cargo project
         working-directory: scripts
         run: |
           cargo run --release
