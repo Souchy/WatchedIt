@@ -12,6 +12,7 @@ import { LanguageCode, Movie, MovieItem, SearchMoviesFilters, SearchMultiSearchF
 import { MediaKindDetails, MediaKindItem } from "src/core/Types";
 import { UserDataCache } from "src/core/state/UserDataCache";
 import { FilterSort, filterSorts } from "src/core/Sorts";
+import { Filters } from "@leandrowkz/tmdb/build/src/types/filters";
 
 export class Range {
 	min: number | null = null;
@@ -95,7 +96,7 @@ export class SearchPage {
 	// private results: TMDBResponseList<Array<MediaUserDataKind & { details: (TVShowItem | MovieItem) }>> | null = null;
 	private results: TMDBResponseList<Array<MediaKindItem>> | null = null;
 
-	
+
 	public bound() {
 		// we have to be bound so that the UI updates when we set the filter.
 		this.fromQueryString();
@@ -113,18 +114,14 @@ export class SearchPage {
 
 	public search() {
 		this.updateUrl();
-		if (!this.filter.query || this.filter.query.trim() === '') {
-			this.results = null;
-			return;
-		}
+		this.results = null;
 		// Clear the previous timer
 		if (this.debounceTimeout) {
 			clearTimeout(this.debounceTimeout);
 		}
 		// Start a new debounce timer
 		this.debounceTimeout = setTimeout(() => {
-			this.results = null;
-			this.searchMore(); // Call the search function
+			this.loadMore(); // Call the search function
 		}, 300); // Wait 300ms after the user stops typing
 	}
 
@@ -172,8 +169,19 @@ export class SearchPage {
 		this.logger.debug('Loading with filter:', this.filter);
 	}
 
+	public get includeMovies(): boolean {
+		return this.filter.format === 'all' || this.filter.format == MediaKind.Movie;
+	}
+	public get includeTVShows(): boolean {
+		return this.filter.format === 'all' || this.filter.format == MediaKind.TVShow;
+	}
 
-	private async searchMore() {
+	private async loadMore() {
+		if (!this.filter.query || this.filter.query.trim() === '') {
+			this.discoverMore();
+			return;
+		}
+
 		const nextPage = (this.results?.page || 0) + 1;
 		this.logger.debug('Searching more, page', nextPage, this.filter.query, this.filter.format, this.includeMovies, this.includeTVShows);
 
@@ -187,12 +195,22 @@ export class SearchPage {
 		// if (this.filter.year)
 		// 	tvFilter.first_air_date_year = this.filter.year;
 		let tvs = this.includeTVShows ? await this.tmdb.search.tvShows(tvFilter) : { page: 1, results: [], total_pages: 1, total_results: 0 };
-		const tvResults = tvs.results.map(tvshow => {
-			return {
-				kind: MediaKind.TVShow,
-				details: tvshow,
-			} satisfies MediaKindItem;
-		})
+
+		let movieFilter: SearchMoviesFilters = {
+			query: this.filter.query,
+			page: nextPage,
+			include_adult: this.filter.include_adult,
+			language: this.filter.language,
+			primary_release_year: this.filter.year,
+		};
+		let movies = this.includeMovies ? await this.tmdb.search.movies(movieFilter) : { page: 1, results: [], total_pages: 1, total_results: 0 };
+
+		this.receiveResults(nextPage, movies, tvs);
+	}
+
+	private async discoverMore() {
+		const nextPage = (this.results?.page || 0) + 1;
+		this.logger.debug('Searching more, page', nextPage, this.filter.query, this.filter.format, this.includeMovies, this.includeTVShows);
 
 		// this.tmdb.discover.movies({
 		// 	sort_by: 'popularity.desc',
@@ -208,23 +226,38 @@ export class SearchPage {
 		// this.tmdb.discover.movies({
 		// 	with_keywords: ['science-fiction'],
 		// })
-
-		let movieFilter: SearchMoviesFilters = {
-			query: this.filter.query,
+		let tvResults = this.includeTVShows ? await this.tmdb.discover.tv({
+			sort_by: 'popularity.desc',
 			page: nextPage,
 			include_adult: this.filter.include_adult,
-			language: this.filter.language,
+			first_air_date_year: this.filter.year,
+		} as Filters) : { page: 1, results: [], total_pages: 1, total_results: 0 };
+
+		let movies = this.includeMovies ? await this.tmdb.discover.movies({
+			sort_by: 'popularity.desc',
+			page: nextPage,
+			include_adult: this.filter.include_adult,
 			primary_release_year: this.filter.year,
-		};
-		let movies = this.includeMovies ? await this.tmdb.search.movies(movieFilter) : { page: 1, results: [], total_pages: 1, total_results: 0 };
+		}) : { page: 1, results: [], total_pages: 1, total_results: 0 };
+
+		this.receiveResults(nextPage, movies, tvResults);
+	}
+
+	private async receiveResults(nextPage: number, movies: TMDBResponseList<MovieItem[]>, tvs: TMDBResponseList<TVShowItem[]>) {
+		const tvResults = tvs.results.map(tvshow => {
+			return {
+				kind: MediaKind.TVShow,
+				details: tvshow,
+			} satisfies MediaKindItem;
+		})
 		const movieResults = movies.results.map(movie => {
 			return {
 				kind: MediaKind.Movie,
 				details: movie,
 			} satisfies MediaKindItem;
 		});
-
-		const newResults = [...tvResults, ...movieResults].sort(this.filterSortBy.function);
+		const newResults = [...tvResults, ...movieResults]
+			.sort(this.filterSortBy.function);
 
 		if (!this.results) {
 			this.results = {
@@ -241,14 +274,6 @@ export class SearchPage {
 			this.results.total_pages = tvs.total_pages;
 			this.results.total_results += tvs.total_results + movies.total_results;
 		}
-	}
-
-
-	public get includeMovies(): boolean {
-		return this.filter.format === 'all' || this.filter.format == MediaKind.Movie;
-	}
-	public get includeTVShows(): boolean {
-		return this.filter.format === 'all' || this.filter.format == MediaKind.TVShow;
 	}
 
 }
