@@ -100,9 +100,13 @@ export abstract class SuperMediaDetails<T extends Movie | TVShow | TVSeason> imp
 	public get searchEngines() {
 		const codedTitle = encodeURIComponent(this.title);
 		return this.appSearchEngines.map(engine => {
+			let url = engine.url
+				.replace('%n', this.mediaId.toString())
+				.replace("%t", this.mediaKind === MediaKind.TVShow ? "tv" : "movie")
+				.replace('%s', codedTitle + (engine.includeYear ? ' ' + this.releaseYear : ''));
 			return {
 				name: engine.name,
-				url: engine.url.replace('%s', codedTitle + (engine.includeYear ? ' ' + this.releaseYear : '')),
+				url,
 			}
 		});
 	}
