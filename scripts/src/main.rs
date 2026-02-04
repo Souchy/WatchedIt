@@ -1,5 +1,4 @@
 use std::env;
-use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{error::Error, thread::sleep};
 
@@ -9,175 +8,14 @@ use postgres::Client;
 use serde_json::Value;
 use tmdb_client::apis::client::APIClient;
 
-use openssl::error::ErrorStack;
-use openssl::ssl::{SslConnector, SslMethod};
-use postgres_openssl::MakeTlsConnector;
-
-mod collection;
-mod company;
-mod keyword;
-mod movies;
-mod network;
-mod person;
-mod rate_limiter;
-mod tv;
-
+use gateway::Gateway;
 use rate_limiter::RateLimiter;
 
-// Generic retry helper for batch inserts with binary search fallback
-pub fn batch_insert_with_retry<T, F, G>(
-    items: &[T],
-    mut try_insert: F,
-    get_id: G,
-    type_name: &str,
-    depth: usize,
-) -> Result<(), Box<dyn Error>>
-where
-    F: FnMut(&[T]) -> Result<(), Box<dyn Error>>,
-    G: Fn(&T) -> Option<i32>,
-{
-    batch_insert_with_retry_impl(items, &mut try_insert, &get_id, type_name, depth)
-}
 
-fn batch_insert_with_retry_impl<T, G>(
-    items: &[T],
-    try_insert: &mut dyn FnMut(&[T]) -> Result<(), Box<dyn Error>>,
-    get_id: &G,
-    type_name: &str,
-    depth: usize,
-) -> Result<(), Box<dyn Error>>
-where
-    G: Fn(&T) -> Option<i32>,
-{
-    if items.is_empty() {
-        return Ok(());
-    }
-
-    // If only one item, try to insert it individually and skip on error
-    if items.len() == 1 {
-        let result = try_insert(items);
-        if let Err(e) = result {
-            eprintln!(
-                "Skipping {} id {} due to error: {:#?}",
-                type_name,
-                get_id(&items[0]).unwrap_or(-1),
-                e
-            );
-        }
-        return Ok(());
-    }
-
-    // Try to insert the whole batch
-    let result = try_insert(items);
-    if result.is_ok() {
-        return Ok(());
-    } else if let Err(ref e) = result {
-        eprintln!(
-            "Batch of {} {} records failed, splitting to isolate error: {:#?}",
-            items.len(),
-            type_name,
-            e
-        );
-    }
-
-    // If failed, split in half and retry each half
-    if depth < 20 {
-        let mid = items.len() / 2;
-        let (left, right) = items.split_at(mid);
-        batch_insert_with_retry_impl(left, try_insert, get_id, type_name, depth + 1)?;
-        batch_insert_with_retry_impl(right, try_insert, get_id, type_name, depth + 1)?;
-        Ok(())
-    } else {
-        Err("Max retry depth reached".into())
-    }
-}
-
-pub trait Gateway {
-    fn api_name(&self) -> &str;
-    fn table_name(&self) -> String {
-        format!("tmdb_{}", self.api_name())
-    }
-    fn popularity_min(&self) -> f32;
-    fn batch_size(&self) -> usize;
-    fn fetch_dump(&self);
-    fn fetch_details(&mut self, api: &APIClient, id: i32) -> Result<(), tmdb_client::Error>;
-    fn insert_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
-    fn insert_bulk_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
-    fn create_table(&self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
-
-    // Whether this entity type supports the changes API
-    fn has_changes_api(&self) -> bool {
-        matches!(self.api_name(), "movie" | "tv_series" | "person")
-    }
-    fn get_changes(
-        &self,
-        _api: &APIClient,
-        _since: NaiveDate,
-        _page: i32,
-    ) -> Result<tmdb_client::models::ChangesPaginated, tmdb_client::Error> {
-        unimplemented!()
-    }
-
-    fn get_ids_to_process(
-        &self,
-        pg: &mut Client,
-        candidate_ids: &[i32],
-        days_old: i32,
-        day_partition: i32,
-    ) -> Result<std::collections::HashSet<i32>, Box<dyn Error>> {
-        let table_name = self.table_name();
-        let query = format!(
-            "SELECT c.id 
-             FROM unnest($1::int4[]) AS c(id)
-             LEFT JOIN {} m ON m.id = c.id
-             WHERE m.id IS NULL
-                OR (m.updated_at < NOW() - $2::integer * INTERVAL '1 day' AND m.id % 7 = $3)",
-            table_name
-        );
-
-        let mut ids = std::collections::HashSet::new();
-
-        // Process in chunks to avoid query parameter limits
-        const CHUNK_SIZE: usize = 10_000;
-        for chunk in candidate_ids.chunks(CHUNK_SIZE) {
-            let rows = pg.query(&query, &[&chunk, &days_old, &day_partition])?;
-            for row in rows {
-                let id: i32 = row.get(0);
-                ids.insert(id);
-            }
-        }
-
-        Ok(ids)
-    }
-}
-
-fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
-    let ca_file_path = if cfg!(target_os = "windows") {
-        format!(
-            "{}\\postgresql\\root.crt",
-            env::var("APPDATA").unwrap_or_else(|_| ".".to_string())
-        )
-    } else {
-        format!(
-            "{}/.postgresql/root.crt",
-            env::var("HOME").unwrap_or_else(|_| ".".to_string())
-        )
-    };
-
-    eprintln!("Using CA file path: {}", ca_file_path);
-
-    // Verify the existence of the CA file.
-    let ca_file = Path::new(&ca_file_path);
-    if !ca_file.exists() {
-        eprintln!("CA file {} not found!", ca_file_path);
-        return Err(ErrorStack::get()); // Return explicit error.
-    }
-
-    // Configure OpenSSL with the CA file.
-    let mut builder = SslConnector::builder(SslMethod::tls())?;
-    builder.set_ca_file(ca_file_path)?;
-    Ok(MakeTlsConnector::new(builder.build()))
-}
+mod gateways;
+pub mod rate_limiter;
+pub mod gateway;
+pub mod util;
 
 fn main() -> Result<(), Box<dyn Error>> {
     dotenv().ok();
@@ -197,7 +35,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let mut pg = Client::connect(&db_url, NoTls)?;
 
     // connect to CockroachDB with SSL
-    let connector = ssl_config().unwrap();
+    let connector = util::ssl::ssl_config().unwrap();
     let connection_uri = env::var("DATABASE_URL")
         .expect("$DATABASE_URL is not set")
         .to_owned()
@@ -216,13 +54,13 @@ fn new_code(
     today: &NaiveDate,
 ) -> Result<(), Box<dyn Error>> {
     let mut gateways: Vec<Box<dyn Gateway>> = vec![
-        Box::new(movies::MovieGateway::new()),
-        Box::new(tv::TvGateway::new()),
-        Box::new(person::PersonGateway::new()),
-        Box::new(keyword::KeywordGateway::new()),
-        Box::new(collection::CollectionGateway::new()),
-        Box::new(network::NetworkGateway::new()),
-        Box::new(company::CompanyGateway::new()),
+        Box::new(gateways::movies::MovieGateway::new()),
+        Box::new(gateways::tv_series::TvGateway::new()),
+        Box::new(gateways::person::PersonGateway::new()),
+        Box::new(gateways::keyword::KeywordGateway::new()),
+        Box::new(gateways::collection::CollectionGateway::new()),
+        Box::new(gateways::tv_network::NetworkGateway::new()),
+        Box::new(gateways::company::CompanyGateway::new()),
     ];
 
     for gateway in &mut gateways {
@@ -234,35 +72,35 @@ fn new_code(
         let mut candidate_ids: Vec<i32>;
         let filtered_count: usize;
 
-        // if gateway.has_changes_api() {
-        //     // Use changes API to get recently changed IDs
-        //     eprintln!("Using changes API for {}", gateway.api_name());
-        //     let changed_ids = fetch_changes(gateway.as_ref(), api_client)?;
-        //     eprintln!("Found {} changed IDs in last week", changed_ids.len());
+        if gateway.has_changes_api() {
+            // Use changes API to get recently changed IDs
+            eprintln!("Using changes API for {}", gateway.api_name());
+            let changed_ids = fetch_changes(gateway.as_ref(), api_client)?;
+            eprintln!("Found {} changed IDs in last week", changed_ids.len());
 
-        //     // Cross-reference with dump for popularity filtering
-        //     let dump = fetch_dump(
-        //         gateway.api_name(),
-        //         &today,
-        //         &(gateway.popularity_min() as f64),
-        //     );
-        //     let dump_ids: std::collections::HashSet<i32> = dump
-        //         .iter()
-        //         .filter_map(|rec| rec.get("id").and_then(|v| v.as_i64()).map(|id| id as i32))
-        //         .collect();
+            // Cross-reference with dump for popularity filtering
+            let dump = fetch_dump(
+                gateway.api_name(),
+                &today,
+                &(gateway.popularity_min() as f64),
+            );
+            let dump_ids: std::collections::HashSet<i32> = dump
+                .iter()
+                .filter_map(|rec| rec.get("id").and_then(|v| v.as_i64()).map(|id| id as i32))
+                .collect();
 
-        //     // Keep only changed IDs that meet popularity criteria
-        //     candidate_ids = changed_ids
-        //         .into_iter()
-        //         .filter(|id| dump_ids.contains(id))
-        //         .collect();
-        //     filtered_count = candidate_ids.len();
-        //     eprintln!(
-        //         "{} / {} changed IDs meet popularity criteria",
-        //         filtered_count,
-        //         dump_ids.len()
-        //     );
-        // } else {
+            // Keep only changed IDs that meet popularity criteria
+            candidate_ids = changed_ids
+                .into_iter()
+                .filter(|id| dump_ids.contains(id))
+                .collect();
+            filtered_count = candidate_ids.len();
+            eprintln!(
+                "{} / {} changed IDs meet popularity criteria",
+                filtered_count,
+                dump_ids.len()
+            );
+        } else {
             // Use dump-based approach with stale detection
             eprintln!("Using dump-based approach for {}", gateway.api_name());
             let filtered = fetch_dump(
@@ -291,7 +129,7 @@ fn new_code(
 
             // Filter to only records we need to process
             candidate_ids = ids_to_process.into_iter().collect();
-        // }
+        }
 
         let total_to_process = candidate_ids.len();
         eprintln!(

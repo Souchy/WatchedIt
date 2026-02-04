@@ -59,11 +59,11 @@ impl Gateway for MovieGateway {
             .filter(|movie| movie.id.is_some())
             .collect();
         // Use generic retry helper
-        crate::batch_insert_with_retry(
+        crate::util::sql::batch_insert_with_retry(
             &movie_refs,
             |batch| self.try_insert_movies_batch(pg, batch),
             |m| m.id,
-            "movie",
+            self.api_name(),
             0,
         )?;
         self.movies.clear();

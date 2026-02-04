@@ -51,11 +51,11 @@ impl Gateway for TvGateway {
         }
         
         let tv_refs: Vec<&TvDetails> = self.tv_shows.iter().filter(|tv| tv.id.is_some()).collect();
-        crate::batch_insert_with_retry(
+        crate::util::sql::batch_insert_with_retry(
             &tv_refs,
             |batch| self.try_insert_tv_batch(pg, batch),
             |t| t.id,
-            "tv_series",
+            self.api_name(),
             0,
         )?;
         self.tv_shows.clear();

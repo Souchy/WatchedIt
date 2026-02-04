@@ -49,11 +49,11 @@ impl Gateway for KeywordGateway {
         }
         
         let keyword_refs: Vec<&Keyword> = self.keywords.iter().filter(|keyword| keyword.id.is_some()).collect();
-        crate::batch_insert_with_retry(
+        crate::util::sql::batch_insert_with_retry(
             &keyword_refs,
             |batch| self.try_insert_keyword_batch(pg, batch),
             |k| k.id,
-            "keyword",
+            self.api_name(),
             0,
         )?;
         self.keywords.clear();

@@ -52,11 +52,11 @@ impl Gateway for PersonGateway {
             .iter()
             .filter(|person| person.id.is_some())
             .collect();
-        crate::batch_insert_with_retry(
+        crate::util::sql::batch_insert_with_retry(
             &person_refs,
             |batch| self.try_insert_person_batch(pg, batch),
             |p| p.id,
-            "person",
+            self.api_name(),
             0,
         )?;
         self.people.clear();

@@ -49,11 +49,11 @@ impl Gateway for CompanyGateway {
         }
         
         let company_refs: Vec<&CompanyDetails> = self.companies.iter().filter(|company| company.id.is_some()).collect();
-        crate::batch_insert_with_retry(
+        crate::util::sql::batch_insert_with_retry(
             &company_refs,
             |batch| self.try_insert_company_batch(pg, batch),
             |c| c.id,
-            "company",
+            self.api_name(),
             0,
         )?;
         self.companies.clear();

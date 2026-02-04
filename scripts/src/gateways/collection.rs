@@ -49,11 +49,11 @@ impl Gateway for CollectionGateway {
         }
         
         let collection_refs: Vec<&CollectionObject> = self.collections.iter().filter(|collection| collection.id.is_some()).collect();
-        crate::batch_insert_with_retry(
+        crate::util::sql::batch_insert_with_retry(
             &collection_refs,
             |batch| self.try_insert_collection_batch(pg, batch),
             |c| c.id,
-            "collection",
+            self.api_name(),
             0,
         )?;
         self.collections.clear();

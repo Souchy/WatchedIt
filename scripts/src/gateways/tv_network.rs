@@ -49,11 +49,11 @@ impl Gateway for NetworkGateway {
         }
         
         let network_refs: Vec<&Network> = self.networks.iter().filter(|network| network.id.is_some()).collect();
-        crate::batch_insert_with_retry(
+        crate::util::sql::batch_insert_with_retry(
             &network_refs,
             |batch| self.try_insert_network_batch(pg, batch),
             |n| n.id,
-            "network",
+            self.api_name(),
             0,
         )?;
         self.networks.clear();
