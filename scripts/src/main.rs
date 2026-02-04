@@ -5,15 +5,13 @@ use std::{error::Error, thread::sleep};
 
 use chrono::NaiveDate;
 use dotenvy::dotenv;
-use postgres::{Client, NoTls};
+use postgres::Client;
 use serde_json::Value;
 use tmdb_client::apis::client::APIClient;
 
 use openssl::error::ErrorStack;
 use openssl::ssl::{SslConnector, SslMethod};
-use postgres::{Transaction, error::SqlState};
 use postgres_openssl::MakeTlsConnector;
-use uuid::Uuid;
 
 type FetchFn = fn(&APIClient, &mut Client, &str, i32) -> Result<(), Box<dyn Error>>;
 mod collection;
@@ -24,13 +22,83 @@ mod network;
 mod person;
 mod tv;
 
+// Generic retry helper for batch inserts with binary search fallback
+pub fn batch_insert_with_retry<T, F, G>(
+    items: &[T],
+    mut try_insert: F,
+    get_id: G,
+    type_name: &str,
+    depth: usize,
+) -> Result<(), Box<dyn Error>>
+where
+    F: FnMut(&[T]) -> Result<(), Box<dyn Error>>,
+    G: Fn(&T) -> Option<i32>,
+{
+    batch_insert_with_retry_impl(items, &mut try_insert, &get_id, type_name, depth)
+}
+
+fn batch_insert_with_retry_impl<T, G>(
+    items: &[T],
+    try_insert: &mut dyn FnMut(&[T]) -> Result<(), Box<dyn Error>>,
+    get_id: &G,
+    type_name: &str,
+    depth: usize,
+) -> Result<(), Box<dyn Error>>
+where
+    G: Fn(&T) -> Option<i32>,
+{
+    if items.is_empty() {
+        return Ok(());
+    }
+
+    // If only one item, try to insert it individually and skip on error
+    if items.len() == 1 {
+        let result = try_insert(items);
+        if let Err(e) = result {
+            eprintln!(
+                "Skipping {} id {} due to error: {:#?}",
+                type_name,
+                get_id(&items[0]).unwrap_or(-1),
+                e
+            );
+        }
+        return Ok(());
+    }
+
+    // Try to insert the whole batch
+    let result = try_insert(items);
+    if result.is_ok() {
+        return Ok(());
+    } else if let Err(ref e) = result {
+        eprintln!(
+            "Batch of {} {} records failed, splitting to isolate error: {:#?}",
+            items.len(),
+            type_name,
+            e
+        );
+    }
+
+    // If failed, split in half and retry each half
+    if depth < 20 {
+        let mid = items.len() / 2;
+        let (left, right) = items.split_at(mid);
+        batch_insert_with_retry_impl(left, try_insert, get_id, type_name, depth + 1)?;
+        batch_insert_with_retry_impl(right, try_insert, get_id, type_name, depth + 1)?;
+        Ok(())
+    } else {
+        Err("Max retry depth reached".into())
+    }
+}
+
 pub trait Gateway {
     fn api_name(&self) -> &str;
     fn popularity_min(&self) -> f32;
+    fn batch_size(&self) -> usize;
     fn fetch_dump(&self);
-    fn fetch_details(&mut self, api: &APIClient, id: &i32) -> Result<(), tmdb_client::Error>;
-    fn insert_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>; //, detail: &T);
-    fn insert_bulk_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>; //, details: &Vec<T>);
+    fn fetch_details(&mut self, api: &APIClient, id: i32) -> Result<(), tmdb_client::Error>;
+    fn insert_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
+    fn insert_bulk_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
+    fn create_table(&self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
 }
 
 fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
@@ -87,6 +155,120 @@ fn main() -> Result<(), Box<dyn Error>> {
     let mut client = Client::connect(&connection_uri, connector).unwrap();
     // let mut client = Client::connect(&connection_uri, NoTls).unwrap();
 
+    new_code(&api_client, &mut client, &today)?;
+    // old_code(&api_client, &mut client, &today)?;
+
+    Ok(())
+}
+
+fn new_code(
+    api_client: &APIClient,
+    client: &mut Client,
+    today: &NaiveDate,
+) -> Result<(), Box<dyn Error>> {
+    let mut gateways: Vec<Box<dyn Gateway>> = vec![
+        Box::new(movies::MovieGateway::new()),
+        Box::new(tv::TvGateway::new()),
+        Box::new(person::PersonGateway::new()),
+        Box::new(keyword::KeywordGateway::new()),
+        Box::new(collection::CollectionGateway::new()),
+        Box::new(network::NetworkGateway::new()),
+        Box::new(company::CompanyGateway::new()),
+    ];
+
+    for gateway in &mut gateways {
+        eprintln!("processing export type: {}", gateway.api_name());
+
+        let filtered = fetch_dump(
+            gateway.api_name(),
+            &today,
+            &(gateway.popularity_min() as f64),
+        );
+        let filtered_count = filtered.len();
+
+        // Create table once at the start
+        gateway.create_table(client)?;
+
+        let mut i = 0;
+        let mut batch_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        let mut rate_limit_batch_start = SystemTime::now();
+        let rate_limit_batch_size = 25; // TMDB advertises 40 req/s but throttles aggressively
+        let rate_limit_window = Duration::from_secs(1);
+        let mut batch_slept_time = 0;
+
+        for rec in filtered {
+            // Make the API request
+            let result = gateway.fetch_details(
+                &api_client,
+                rec.get("id").and_then(|v| v.as_i64()).unwrap() as i32,
+            );
+
+            if let Err(e) = result {
+                eprintln!(
+                    "error fetching {} id {}: {}",
+                    gateway.api_name(),
+                    rec.get("id").unwrap(),
+                    e
+                );
+            }
+            i += 1;
+
+            // Insert every batch_size items
+            if i % gateway.batch_size() == 0 {
+                let fetch_end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+                let fetch_time = (fetch_end - batch_start).as_secs_f64();
+
+                let insert_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+                gateway.insert_bulk_details(client)?;
+                let insert_end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+                let insert_time = (insert_end - insert_start).as_secs_f64();
+
+                eprintln!(
+                    "processed {}/{} records for {} | fetch: {:.2}s, insert: {:.2}s, sleep: {:.2}s, total: {:.2}s",
+                    i,
+                    filtered_count,
+                    gateway.api_name(),
+                    fetch_time,
+                    insert_time,
+                    (batch_slept_time as f64) / 1000.0,
+                    fetch_time + insert_time
+                );
+                batch_slept_time = 0;
+            }
+
+            // Every x requests, check if we need to sleep to maintain rate limit
+            if i % rate_limit_batch_size == 0 {
+                let elapsed = rate_limit_batch_start.elapsed().unwrap_or(Duration::ZERO);
+                if elapsed < rate_limit_window {
+                    sleep(rate_limit_window - elapsed);
+                    batch_slept_time += (rate_limit_window - elapsed).as_millis();
+                }
+                rate_limit_batch_start = SystemTime::now();
+            }
+
+            if i % gateway.batch_size() == 0 {
+                batch_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+            }
+        }
+
+        // Insert any remaining items
+        gateway.insert_bulk_details(client)?;
+        eprintln!(
+            "processed {}/{} records for {}",
+            filtered_count,
+            filtered_count,
+            gateway.api_name()
+        );
+    }
+
+    Ok(())
+}
+
+fn old_code(
+    api_client: &APIClient,
+    client: &mut Client,
+    today: &NaiveDate,
+) -> Result<(), Box<dyn Error>> {
     // exports with associated fetch function to call directly
     let exports: &[(&str, FetchFn, f64)] = &[
         ("movie", movies::fetch_movie, 2.0),
@@ -96,16 +278,6 @@ fn main() -> Result<(), Box<dyn Error>> {
         ("collection", collection::fetch_collection, 1.0),
         ("tv_network", network::fetch_network, 1.0),
         // ("production_company", company::fetch_company, 1.0),
-    ];
-
-    let gateways = vec![
-        movies::MovieGateway::new(),
-        tv::TvGateway::new(),
-        person::PersonGateway::new(),
-        keyword::KeywordGateway::new(),
-        collection::CollectionGateway::new(),
-        network::NetworkGateway::new(),
-        // company::CompanyGateway::new(),
     ];
 
     for (export_type, fetch_fn, min_popularity) in exports {
@@ -119,7 +291,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         for rec in filtered {
             let result = fetch_fn(
                 &api_client,
-                &mut client,
+                client,
                 export_type,
                 rec.get("id").and_then(|v| v.as_i64()).unwrap() as i32,
             );
@@ -144,7 +316,6 @@ fn main() -> Result<(), Box<dyn Error>> {
             }
         }
     }
-
     Ok(())
 }
 

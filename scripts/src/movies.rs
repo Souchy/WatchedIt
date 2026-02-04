@@ -26,11 +26,15 @@ impl Gateway for MovieGateway {
         2.0
     }
 
+    fn batch_size(&self) -> usize {
+        1000  // Multiple of 40 for rate limiting alignment
+    }
+
     fn fetch_dump(&self) {}
 
-    fn fetch_details(&mut self, api: &APIClient, id: &i32) -> Result<(), tmdb_client::Error> {
+    fn fetch_details(&mut self, api: &APIClient, id: i32) -> Result<(), tmdb_client::Error> {
         let d = api.movies_api().get_movie_details(
-            *id, None, None, None,
+            id, None, None, None,
             // Some("videos,images,keywords,credits"),
         )?;
         self.movies.push(d.clone());
@@ -45,13 +49,46 @@ impl Gateway for MovieGateway {
     }
 
     fn insert_bulk_details(&mut self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
-        // let total_movies = self.movies.len();
-        let count_per_batch = 50;
-        for chunk in self.movies.chunks(count_per_batch) {
-            let movie_refs: Vec<&MovieDetails> =
-                chunk.iter().filter(|movie| movie.id.is_some()).collect();
-            upsert_movies_batch(pg, &movie_refs)?;
+        if self.movies.is_empty() {
+            return Ok(());
         }
+        let movie_refs: Vec<&MovieDetails> = self
+            .movies
+            .iter()
+            .filter(|movie| movie.id.is_some())
+            .collect();
+        // Use generic retry helper
+        crate::batch_insert_with_retry(
+            &movie_refs,
+            |batch| try_insert_movies_batch(pg, batch),
+            |m| m.id,
+            "movie",
+            0,
+        )?;
+        self.movies.clear();
+        Ok(())
+    }
+
+    fn create_table(&self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
+        pg.batch_execute(
+            "CREATE TABLE IF NOT EXISTS tmdb_movie (
+                id INT4 PRIMARY KEY,
+                title TEXT,
+                original_title TEXT,
+                overview TEXT,
+                popularity REAL,
+                release_date TEXT,
+                vote_average REAL,
+                vote_count INT4,
+                homepage TEXT,
+				backdrop_path TEXT,
+				poster_path TEXT,
+				status TEXT,
+				revenue BIGINT,
+				genres JSONB,
+                updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
+            )",
+        )?;
         Ok(())
     }
 }
@@ -72,35 +109,10 @@ pub fn fetch_movie(
     Ok(())
 }
 
-pub fn upsert_movies_batch(
+fn try_insert_movies_batch(
     pg: &mut DbClient,
     movies: &[&MovieDetails],
 ) -> Result<(), Box<dyn Error>> {
-    if movies.is_empty() {
-        return Ok(());
-    }
-
-    // Ensure table exists
-    pg.batch_execute(
-        "CREATE TABLE IF NOT EXISTS tmdb_movie (
-            id INT4 PRIMARY KEY,
-            title TEXT,
-            original_title TEXT,
-            overview TEXT,
-            popularity REAL,
-            release_date TEXT,
-            vote_average REAL,
-            vote_count INT4,
-            homepage TEXT,
-			backdrop_path TEXT,
-			poster_path TEXT,
-			status TEXT,
-			revenue BIGINT,
-			genres JSONB,
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )",
-    )?;
-
     // Start transaction
     let mut transaction = pg.transaction()?;
 
@@ -127,8 +139,8 @@ pub fn upsert_movies_batch(
         .collect();
 
     transaction.execute(
-        "INSERT INTO tmdb_movie (id, title, original_title, overview, popularity, release_date, vote_average, vote_count, homepage, backdrop_path, poster_path, status, revenue, genres, updated_at)
-         SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::TEXT[], $5::REAL[], $6::TEXT[], $7::FLOAT8[], $8::INT4[], $9::TEXT[], $10::TEXT[], $11::TEXT[], $12::TEXT[], $13::INT8[], $14::JSONB[]) 
+        "INSERT INTO tmdb_movie (id, title, original_title, overview, popularity, release_date, vote_average, vote_count, homepage, backdrop_path, poster_path, status, revenue, genres)
+         SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::TEXT[], $5::REAL[], $6::TEXT[], $7::REAL[], $8::INT4[], $9::TEXT[], $10::TEXT[], $11::TEXT[], $12::TEXT[], $13::INT8[], $14::JSONB[]) 
          AS t(id, title, original_title, overview, popularity, release_date, vote_average, vote_count, homepage, backdrop_path, poster_path, status, revenue, genres)
          ON CONFLICT (id) DO UPDATE SET title=EXCLUDED.title, original_title=EXCLUDED.original_title, overview=EXCLUDED.overview,
          popularity=EXCLUDED.popularity, release_date=EXCLUDED.release_date, vote_average=EXCLUDED.vote_average, vote_count=EXCLUDED.vote_count,
