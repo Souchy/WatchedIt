@@ -1,3 +1,4 @@
+use chrono::NaiveDate;
 use postgres::Client as DbClient;
 use postgres_types::Json;
 use std::error::Error;
@@ -27,7 +28,7 @@ impl Gateway for MovieGateway {
     }
 
     fn batch_size(&self) -> usize {
-        1000  // Multiple of 40 for rate limiting alignment
+        1000 // Multiple of 40 for rate limiting alignment
     }
 
     fn fetch_dump(&self) {}
@@ -94,6 +95,20 @@ impl Gateway for MovieGateway {
         pg.batch_execute(&query)?;
         Ok(())
     }
+
+    fn get_changes(
+        &self,
+        api: &APIClient,
+        since: NaiveDate,
+        page: i32,
+    ) -> Result<tmdb_client::models::ChangesPaginated, tmdb_client::Error> {
+        let changes = api.changes_api().get_movie_changes_paginated(
+            Some(since.format("%Y-%m-%d").to_string()),
+            None,
+            Some(page),
+        )?;
+        Ok(changes)
+    }
 }
 
 impl MovieGateway {
@@ -119,7 +134,8 @@ impl MovieGateway {
         let homepages: Vec<Option<&str>> = movies.iter().map(|v| v.homepage.as_deref()).collect();
         let backdrop_paths: Vec<Option<&str>> =
             movies.iter().map(|v| v.backdrop_path.as_deref()).collect();
-        let poster_paths: Vec<Option<&str>> = movies.iter().map(|v| v.poster_path.as_deref()).collect();
+        let poster_paths: Vec<Option<&str>> =
+            movies.iter().map(|v| v.poster_path.as_deref()).collect();
         let statuses: Vec<Option<&str>> = movies.iter().map(|v| v.status.as_deref()).collect();
         let revenues: Vec<Option<i64>> = movies.iter().map(|v| v.revenue).collect();
         let genres_jsons: Vec<Json<Vec<_>>> = movies
@@ -162,7 +178,12 @@ impl MovieGateway {
         Ok(())
     }
 
-    fn upsert_movie(&self, pg: &mut DbClient, id: i32, v: &MovieDetails) -> Result<(), Box<dyn Error>> {
+    fn upsert_movie(
+        &self,
+        pg: &mut DbClient,
+        id: i32,
+        v: &MovieDetails,
+    ) -> Result<(), Box<dyn Error>> {
         let table_name = self.table_name();
         let query = format!(
             "INSERT INTO {} (id, title, original_title, overview, popularity, release_date, vote_average, vote_count, homepage, backdrop_path, poster_path, status, revenue, genres, updated_at)

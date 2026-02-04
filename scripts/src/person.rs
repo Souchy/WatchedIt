@@ -1,7 +1,8 @@
+use crate::Gateway;
+use chrono::NaiveDate;
+use postgres::Client as DbClient;
 use std::error::Error;
 use tmdb_client::{apis::client::APIClient, models::PersonDetails};
-use postgres::Client as DbClient;
-use crate::Gateway;
 
 pub struct PersonGateway {
     pub people: Vec<PersonDetails>,
@@ -9,9 +10,7 @@ pub struct PersonGateway {
 
 impl PersonGateway {
     pub fn new() -> Self {
-        PersonGateway {
-            people: Vec::new(),
-        }
+        PersonGateway { people: Vec::new() }
     }
 }
 
@@ -47,8 +46,12 @@ impl Gateway for PersonGateway {
         if self.people.is_empty() {
             return Ok(());
         }
-        
-        let person_refs: Vec<&PersonDetails> = self.people.iter().filter(|person| person.id.is_some()).collect();
+
+        let person_refs: Vec<&PersonDetails> = self
+            .people
+            .iter()
+            .filter(|person| person.id.is_some())
+            .collect();
         crate::batch_insert_with_retry(
             &person_refs,
             |batch| self.try_insert_person_batch(pg, batch),
@@ -78,6 +81,20 @@ impl Gateway for PersonGateway {
         pg.batch_execute(&query)?;
         Ok(())
     }
+
+    fn get_changes(
+        &self,
+        api: &APIClient,
+        since: NaiveDate,
+        page: i32,
+    ) -> Result<tmdb_client::models::ChangesPaginated, tmdb_client::Error> {
+        let changes = api.changes_api().get_person_changes_paginated(
+            Some(since.format("%Y-%m-%d").to_string()),
+            None,
+            Some(page),
+        )?;
+        Ok(changes)
+    }
 }
 
 impl PersonGateway {
@@ -90,14 +107,13 @@ impl PersonGateway {
 
         let ids: Vec<i32> = people.iter().filter_map(|p| p.id).collect();
         let names: Vec<Option<&str>> = people.iter().map(|p| p.name.as_deref()).collect();
-        let biographies: Vec<Option<&str>> = people.iter().map(|p| p.biography.as_deref()).collect();
+        let biographies: Vec<Option<&str>> =
+            people.iter().map(|p| p.biography.as_deref()).collect();
         let popularities: Vec<Option<f32>> = people.iter().map(|p| p.popularity).collect();
         let birthdays: Vec<Option<&str>> = people.iter().map(|p| p.birthday.as_deref()).collect();
         let deathdays: Vec<Option<&str>> = people.iter().map(|p| p.deathday.as_deref()).collect();
-        let places_of_birth: Vec<Option<&str>> = people
-            .iter()
-            .map(|p| p.place_of_birth.as_deref())
-            .collect();
+        let places_of_birth: Vec<Option<&str>> =
+            people.iter().map(|p| p.place_of_birth.as_deref()).collect();
 
         let table_name = self.table_name();
         let query = format!(
@@ -126,7 +142,12 @@ impl PersonGateway {
         Ok(())
     }
 
-    fn upsert_person(&self, pg: &mut DbClient, id: i32, v: &PersonDetails) -> Result<(), Box<dyn Error>> {
+    fn upsert_person(
+        &self,
+        pg: &mut DbClient,
+        id: i32,
+        v: &PersonDetails,
+    ) -> Result<(), Box<dyn Error>> {
         let table_name = self.table_name();
         let query = format!(
             "INSERT INTO {} (id, name, biography, popularity, birthday, deathday, place_of_birth, updated_at)
@@ -135,7 +156,18 @@ impl PersonGateway {
              birthday=EXCLUDED.birthday, deathday=EXCLUDED.deathday, place_of_birth=EXCLUDED.place_of_birth, updated_at=EXCLUDED.updated_at",
             table_name
         );
-        pg.execute(&query, &[&id, &v.name, &v.biography, &v.popularity, &v.birthday, &v.deathday, &v.place_of_birth])?;
+        pg.execute(
+            &query,
+            &[
+                &id,
+                &v.name,
+                &v.biography,
+                &v.popularity,
+                &v.birthday,
+                &v.deathday,
+                &v.place_of_birth,
+            ],
+        )?;
         Ok(())
     }
 }

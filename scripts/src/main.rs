@@ -19,7 +19,10 @@ mod keyword;
 mod movies;
 mod network;
 mod person;
+mod rate_limiter;
 mod tv;
+
+use rate_limiter::RateLimiter;
 
 // Generic retry helper for batch inserts with binary search fallback
 pub fn batch_insert_with_retry<T, F, G>(
@@ -101,8 +104,27 @@ pub trait Gateway {
     fn insert_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
     fn insert_bulk_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
     fn create_table(&self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
-    
-    fn get_ids_to_process(&self, pg: &mut Client, candidate_ids: &[i32], days_old: i32, day_partition: i32) -> Result<std::collections::HashSet<i32>, Box<dyn Error>> {
+
+    // Whether this entity type supports the changes API
+    fn has_changes_api(&self) -> bool {
+        matches!(self.api_name(), "movie" | "tv_series" | "person")
+    }
+    fn get_changes(
+        &self,
+        _api: &APIClient,
+        _since: NaiveDate,
+        _page: i32,
+    ) -> Result<tmdb_client::models::ChangesPaginated, tmdb_client::Error> {
+        unimplemented!()
+    }
+
+    fn get_ids_to_process(
+        &self,
+        pg: &mut Client,
+        candidate_ids: &[i32],
+        days_old: i32,
+        day_partition: i32,
+    ) -> Result<std::collections::HashSet<i32>, Box<dyn Error>> {
         let table_name = self.table_name();
         let query = format!(
             "SELECT c.id 
@@ -112,9 +134,9 @@ pub trait Gateway {
                 OR (m.updated_at < NOW() - $2::integer * INTERVAL '1 day' AND m.id % 7 = $3)",
             table_name
         );
-        
+
         let mut ids = std::collections::HashSet::new();
-        
+
         // Process in chunks to avoid query parameter limits
         const CHUNK_SIZE: usize = 10_000;
         for chunk in candidate_ids.chunks(CHUNK_SIZE) {
@@ -124,7 +146,7 @@ pub trait Gateway {
                 ids.insert(id);
             }
         }
-        
+
         Ok(ids)
     }
 }
@@ -206,38 +228,78 @@ fn new_code(
     for gateway in &mut gateways {
         eprintln!("processing export type: {}", gateway.api_name());
 
-        let filtered = fetch_dump(
-            gateway.api_name(),
-            &today,
-            &(gateway.popularity_min() as f64),
-        );
-        let filtered_count = filtered.len();
-
         // Create table once at the start
         gateway.create_table(client)?;
-        
-        // Extract all candidate IDs from filtered records
-        let candidate_ids: Vec<i32> = filtered
-            .iter()
-            .filter_map(|rec| rec.get("id").and_then(|v| v.as_i64()).map(|id| id as i32))
-            .collect();
-        
-        // Get IDs to process: either new (not in DB) or stale (old + matching today's partition)
-        let day_of_week = today.weekday().num_days_from_monday() as i32; // 0-6
-        let ids_to_process = gateway.get_ids_to_process(client, &candidate_ids, 7, day_of_week)?;
-        
-        // Filter the records to only those we need to process
-        let records_to_process: Vec<_> = filtered
-            .into_iter()
-            .filter(|rec| {
-                let id = rec.get("id").and_then(|v| v.as_i64()).map(|id| id as i32);
-                id.map_or(false, |id| ids_to_process.contains(&id))
-            })
-            .collect();
-        
-        eprintln!("Processing {}/{} records (new or stale for day {})", 
-            records_to_process.len(), filtered_count, day_of_week);
-        
+
+        let mut candidate_ids: Vec<i32>;
+        let filtered_count: usize;
+
+        // if gateway.has_changes_api() {
+        //     // Use changes API to get recently changed IDs
+        //     eprintln!("Using changes API for {}", gateway.api_name());
+        //     let changed_ids = fetch_changes(gateway.as_ref(), api_client)?;
+        //     eprintln!("Found {} changed IDs in last week", changed_ids.len());
+
+        //     // Cross-reference with dump for popularity filtering
+        //     let dump = fetch_dump(
+        //         gateway.api_name(),
+        //         &today,
+        //         &(gateway.popularity_min() as f64),
+        //     );
+        //     let dump_ids: std::collections::HashSet<i32> = dump
+        //         .iter()
+        //         .filter_map(|rec| rec.get("id").and_then(|v| v.as_i64()).map(|id| id as i32))
+        //         .collect();
+
+        //     // Keep only changed IDs that meet popularity criteria
+        //     candidate_ids = changed_ids
+        //         .into_iter()
+        //         .filter(|id| dump_ids.contains(id))
+        //         .collect();
+        //     filtered_count = candidate_ids.len();
+        //     eprintln!(
+        //         "{} / {} changed IDs meet popularity criteria",
+        //         filtered_count,
+        //         dump_ids.len()
+        //     );
+        // } else {
+            // Use dump-based approach with stale detection
+            eprintln!("Using dump-based approach for {}", gateway.api_name());
+            let filtered = fetch_dump(
+                gateway.api_name(),
+                &today,
+                &(gateway.popularity_min() as f64),
+            );
+            filtered_count = filtered.len();
+
+            candidate_ids = filtered
+                .iter()
+                .filter_map(|rec| rec.get("id").and_then(|v| v.as_i64()).map(|id| id as i32))
+                .collect();
+
+            // Get IDs to process: either new (not in DB) or stale (old + matching today's partition)
+            let day_of_week = today.weekday().num_days_from_monday() as i32; // 0-6
+            let ids_to_process =
+                gateway.get_ids_to_process(client, &candidate_ids, 7, day_of_week)?;
+
+            eprintln!(
+                "Processing {}/{} records (new or stale for day {})",
+                ids_to_process.len(),
+                filtered_count,
+                day_of_week
+            );
+
+            // Filter to only records we need to process
+            candidate_ids = ids_to_process.into_iter().collect();
+        // }
+
+        let total_to_process = candidate_ids.len();
+        eprintln!(
+            "Processing {} records for {}",
+            total_to_process,
+            gateway.api_name()
+        );
+
         let mut i = 0;
         let mut batch_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let mut rate_limit_batch_start = SystemTime::now();
@@ -245,20 +307,12 @@ fn new_code(
         let rate_limit_window = Duration::from_secs(1);
         let mut batch_slept_time = 0;
 
-        for rec in records_to_process {
+        for id in candidate_ids {
             // Make the API request
-            let result = gateway.fetch_details(
-                &api_client,
-                rec.get("id").and_then(|v| v.as_i64()).unwrap() as i32,
-            );
+            let result = gateway.fetch_details(&api_client, id);
 
             if let Err(e) = result {
-                eprintln!(
-                    "error fetching {} id {}: {}",
-                    gateway.api_name(),
-                    rec.get("id").unwrap(),
-                    e
-                );
+                eprintln!("error fetching {} id {}: {}", gateway.api_name(), id, e);
             }
             i += 1;
 
@@ -275,7 +329,7 @@ fn new_code(
                 eprintln!(
                     "processed {}/{} records for {} | fetch: {:.2}s, insert: {:.2}s, sleep: {:.2}s, total: {:.2}s",
                     i,
-                    filtered_count,
+                    total_to_process,
                     gateway.api_name(),
                     fetch_time,
                     insert_time,
@@ -304,13 +358,76 @@ fn new_code(
         gateway.insert_bulk_details(client)?;
         eprintln!(
             "processed {}/{} records for {}",
-            filtered_count,
-            filtered_count,
+            total_to_process,
+            total_to_process,
             gateway.api_name()
         );
     }
 
     Ok(())
+}
+
+fn fetch_changes(
+    gateway: &dyn Gateway,
+    api_client: &APIClient,
+) -> Result<Vec<i32>, Box<dyn Error>> {
+    // Determine the date one week ago
+    let one_week_ago = chrono::Utc::now().date_naive() - chrono::Duration::days(7);
+
+    let mut all_ids = Vec::new();
+    let mut page = 1;
+    let mut total_pages = None;
+    let mut rate_limiter = RateLimiter::new(25, Duration::from_secs(1));
+
+    loop {
+        let progress = if let Some(tp) = total_pages {
+            format!(" ({}/{})", page, tp)
+        } else {
+            String::new()
+        };
+        eprintln!(
+            "Fetching changes page {}{} for {}",
+            page,
+            progress,
+            gateway.api_name()
+        );
+
+        let response = rate_limiter.request_with_retry(gateway.api_name(), || {
+            gateway.get_changes(api_client, one_week_ago, page)
+        })?;
+
+        // Store total pages from first response
+        if total_pages.is_none() {
+            total_pages = response.total_pages;
+            if let Some(tp) = total_pages {
+                eprintln!("Total pages for {}: {}", gateway.api_name(), tp);
+            }
+        }
+
+        let results = response.results.unwrap_or_default();
+        if results.is_empty() {
+            break;
+        }
+
+        all_ids.extend(results.into_iter().filter_map(|item| item.id));
+
+        // Check if there are more pages
+        if let Some(tp) = total_pages {
+            if page >= tp {
+                break;
+            }
+        } else {
+            break;
+        }
+        page += 1;
+    }
+
+    eprintln!(
+        "Fetched {} total changed IDs for {}",
+        all_ids.len(),
+        gateway.api_name()
+    );
+    Ok(all_ids)
 }
 
 fn fetch_dump(export_type: &str, date: &NaiveDate, min_popularity: &f64) -> Vec<Value> {

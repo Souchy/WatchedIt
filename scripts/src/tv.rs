@@ -2,6 +2,7 @@ use postgres::Client as DbClient;
 use std::error::Error;
 use tmdb_client::{apis::client::APIClient, models::TvDetails};
 use postgres::types::Json;
+use chrono::NaiveDate;
 use crate::Gateway;
 
 pub struct TvGateway {
@@ -81,6 +82,20 @@ impl Gateway for TvGateway {
         );
         pg.batch_execute(&query)?;
         Ok(())
+    }
+
+    fn get_changes(
+        &self,
+        api: &APIClient,
+        since: NaiveDate,
+        page: i32,
+    ) -> Result<tmdb_client::models::ChangesPaginated, tmdb_client::Error> {
+        let changes = api.changes_api().get_tv_changes_paginated(
+            Some(since.format("%Y-%m-%d").to_string()),
+            None,
+            Some(page),
+        )?;
+        Ok(changes)
     }
 }
 
