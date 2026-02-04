@@ -11,10 +11,9 @@ use tmdb_client::apis::client::APIClient;
 use gateway::Gateway;
 use rate_limiter::RateLimiter;
 
-
+pub mod gateway;
 mod gateways;
 pub mod rate_limiter;
-pub mod gateway;
 pub mod util;
 
 fn main() -> Result<(), Box<dyn Error>> {
@@ -138,70 +137,80 @@ fn new_code(
             gateway.api_name()
         );
 
-        let mut i = 0;
-        let mut batch_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        let mut rate_limit_batch_start = SystemTime::now();
-        let rate_limit_batch_size = 25; // TMDB advertises 40 req/s but throttles aggressively
-        let rate_limit_window = Duration::from_secs(1);
-        let mut batch_slept_time = 0;
-
-        for id in candidate_ids {
-            // Make the API request
-            let result = gateway.fetch_details(&api_client, id);
-
-            if let Err(e) = result {
-                eprintln!("error fetching {} id {}: {}", gateway.api_name(), id, e);
-            }
-            i += 1;
-
-            // Insert every batch_size items
-            if i % gateway.batch_size() == 0 {
-                let fetch_end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-                let fetch_time = (fetch_end - batch_start).as_secs_f64();
-
-                let insert_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-                gateway.insert_bulk_details(client)?;
-                let insert_end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-                let insert_time = (insert_end - insert_start).as_secs_f64();
-
-                eprintln!(
-                    "processed {}/{} records for {} | fetch: {:.2}s, insert: {:.2}s, sleep: {:.2}s, total: {:.2}s",
-                    i,
-                    total_to_process,
-                    gateway.api_name(),
-                    fetch_time,
-                    insert_time,
-                    (batch_slept_time as f64) / 1000.0,
-                    fetch_time + insert_time
-                );
-                batch_slept_time = 0;
-            }
-
-            // Every x requests, check if we need to sleep to maintain rate limit
-            if i % rate_limit_batch_size == 0 {
-                let elapsed = rate_limit_batch_start.elapsed().unwrap_or(Duration::ZERO);
-                if elapsed < rate_limit_window {
-                    sleep(rate_limit_window - elapsed);
-                    batch_slept_time += (rate_limit_window - elapsed).as_millis();
-                }
-                rate_limit_batch_start = SystemTime::now();
-            }
-
-            if i % gateway.batch_size() == 0 {
-                batch_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-            }
-        }
-
-        // Insert any remaining items
-        gateway.insert_bulk_details(client)?;
-        eprintln!(
-            "processed {}/{} records for {}",
-            total_to_process,
-            total_to_process,
-            gateway.api_name()
-        );
+        process_ids(gateway.as_mut(), api_client, client, candidate_ids)?;
     }
 
+    Ok(())
+}
+
+fn process_ids(
+    gateway: &mut dyn Gateway,
+    api_client: &APIClient,
+    client: &mut Client,
+    candidate_ids: Vec<i32>,
+) -> Result<(), Box<dyn Error>> {
+    let total_to_process = candidate_ids.len();
+    let mut i = 0;
+    let mut batch_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+    let mut rate_limit_batch_start = SystemTime::now();
+    let rate_limit_batch_size = 25; // TMDB advertises 40 req/s but throttles aggressively
+    let rate_limit_window = Duration::from_secs(1);
+    let mut batch_slept_time = 0;
+
+    for id in candidate_ids {
+        // Make the API request
+        let result = gateway.fetch_details(&api_client, id);
+
+        if let Err(e) = result {
+            eprintln!("error fetching {} id {}: {}", gateway.api_name(), id, e);
+        }
+        i += 1;
+
+        // Insert every batch_size items
+        if i % gateway.batch_size() == 0 {
+            let fetch_end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+            let fetch_time = (fetch_end - batch_start).as_secs_f64();
+
+            let insert_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+            gateway.insert_bulk_details(client)?;
+            let insert_end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+            let insert_time = (insert_end - insert_start).as_secs_f64();
+
+            eprintln!(
+                "processed {}/{} records for {} | fetch: {:.2}s, insert: {:.2}s, sleep: {:.2}s, total: {:.2}s",
+                i,
+                total_to_process,
+                gateway.api_name(),
+                fetch_time,
+                insert_time,
+                (batch_slept_time as f64) / 1000.0,
+                fetch_time + insert_time
+            );
+            batch_slept_time = 0;
+        }
+
+        // Every x requests, check if we need to sleep to maintain rate limit
+        if i % rate_limit_batch_size == 0 {
+            let elapsed = rate_limit_batch_start.elapsed().unwrap_or(Duration::ZERO);
+            if elapsed < rate_limit_window {
+                sleep(rate_limit_window - elapsed);
+                batch_slept_time += (rate_limit_window - elapsed).as_millis();
+            }
+            rate_limit_batch_start = SystemTime::now();
+        }
+
+        if i % gateway.batch_size() == 0 {
+            batch_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+        }
+    }
+    // Insert any remaining items
+    gateway.insert_bulk_details(client)?;
+    eprintln!(
+        "processed {}/{} records for {}",
+        total_to_process,
+        total_to_process,
+        gateway.api_name()
+    );
     Ok(())
 }
 
