@@ -93,22 +93,6 @@ impl Gateway for MovieGateway {
     }
 }
 
-pub fn fetch_movie(
-    api: &APIClient,
-    pg: &mut DbClient,
-    _kind: &str,
-    id: i32,
-) -> Result<(), Box<dyn Error>> {
-    let d = api.movies_api().get_movie_details(
-        id, None, None, None, // Some("videos,images,keywords,credits"),
-    )?;
-
-    // let credits = api.movies_api().get_movie_credits(id)?;
-
-    upsert_movie(pg, id, &d)?;
-    Ok(())
-}
-
 fn try_insert_movies_batch(
     pg: &mut DbClient,
     movies: &[&MovieDetails],
@@ -168,35 +152,6 @@ fn try_insert_movies_batch(
 }
 
 pub fn upsert_movie(pg: &mut DbClient, id: i32, v: &MovieDetails) -> Result<(), Box<dyn Error>> {
-    // let drop_result = pg.batch_execute("DROP TABLE IF EXISTS tmdb_movie");
-    // if let Err(e) = drop_result {
-    //     println!("Error dropping tmdb_movie table: {}", e);
-    //     return Err(Box::new(e));
-    // }
-
-    let create_result = pg.batch_execute(
-        "CREATE TABLE IF NOT EXISTS tmdb_movie (
-            id INT4 PRIMARY KEY,
-            title TEXT,
-            original_title TEXT,
-            overview TEXT,
-            popularity REAL,
-            release_date TEXT,
-            vote_average REAL,
-            vote_count INT4,
-            homepage TEXT,
-			backdrop_path TEXT,
-			poster_path TEXT,
-			status TEXT,
-			revenue BIGINT,
-			genres JSONB,
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )",
-    );
-    if let Err(e) = create_result {
-        println!("Error creating tmdb_movie table: {}", e);
-        return Err(Box::new(e));
-    }
 
     let insert_result = pg.execute(
         "INSERT INTO tmdb_movie (id, title, original_title, overview, popularity, release_date, vote_average, vote_count, homepage, backdrop_path, poster_path, status, revenue, genres, updated_at)

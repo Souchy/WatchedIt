@@ -13,7 +13,6 @@ use openssl::error::ErrorStack;
 use openssl::ssl::{SslConnector, SslMethod};
 use postgres_openssl::MakeTlsConnector;
 
-type FetchFn = fn(&APIClient, &mut Client, &str, i32) -> Result<(), Box<dyn Error>>;
 mod collection;
 mod company;
 mod keyword;
@@ -156,7 +155,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     // let mut client = Client::connect(&connection_uri, NoTls).unwrap();
 
     new_code(&api_client, &mut client, &today)?;
-    // old_code(&api_client, &mut client, &today)?;
 
     Ok(())
 }
@@ -261,61 +259,6 @@ fn new_code(
         );
     }
 
-    Ok(())
-}
-
-fn old_code(
-    api_client: &APIClient,
-    client: &mut Client,
-    today: &NaiveDate,
-) -> Result<(), Box<dyn Error>> {
-    // exports with associated fetch function to call directly
-    let exports: &[(&str, FetchFn, f64)] = &[
-        ("movie", movies::fetch_movie, 2.0),
-        ("tv_series", tv::fetch_tv, 2.0),
-        ("person", person::fetch_person, 1.0),
-        ("keyword", keyword::fetch_keyword, 1.0),
-        ("collection", collection::fetch_collection, 1.0),
-        ("tv_network", network::fetch_network, 1.0),
-        // ("production_company", company::fetch_company, 1.0),
-    ];
-
-    for (export_type, fetch_fn, min_popularity) in exports {
-        eprintln!("processing export type: {}", export_type);
-
-        let filtered = fetch_dump(export_type, &today, min_popularity);
-        let filtered_count = filtered.len();
-
-        let mut i = 0;
-        let mut start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-        for rec in filtered {
-            let result = fetch_fn(
-                &api_client,
-                client,
-                export_type,
-                rec.get("id").and_then(|v| v.as_i64()).unwrap() as i32,
-            );
-            if let Err(e) = result {
-                eprintln!(
-                    "error fetching {} id {}: {}",
-                    export_type,
-                    rec.get("id").unwrap(),
-                    e
-                );
-            }
-            sleep(Duration::from_millis(21)); // rate limit to 50/sec
-            i += 1;
-            if i % 100 == 0 {
-                eprintln!(
-                    "processed {}/{} records for {}",
-                    i, filtered_count, export_type
-                );
-                let end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
-                eprintln!("Elapsed time: {} seconds", (end - start).as_secs_f64());
-                start = end;
-            }
-        }
-    }
     Ok(())
 }
 

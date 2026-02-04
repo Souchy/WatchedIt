@@ -77,12 +77,6 @@ impl Gateway for PersonGateway {
     }
 }
 
-pub fn fetch_person(api: &APIClient, pg: &mut DbClient, _kind: &str, id: i32) -> Result<(), Box<dyn Error>> {
-    let d = api.people_api().get_person_details(id, None, None, None)?;
-    upsert_person(pg, id, &d)?;
-    Ok(())
-}
-
 fn try_insert_person_batch(
     pg: &mut DbClient,
     people: &[&PersonDetails],
@@ -122,19 +116,6 @@ fn try_insert_person_batch(
 }
 
 pub fn upsert_person(pg: &mut DbClient, id: i32, v: &PersonDetails) -> Result<(), Box<dyn Error>> {
-    pg.batch_execute(
-        "CREATE TABLE IF NOT EXISTS tmdb_person (
-            id INT4 PRIMARY KEY,
-            name TEXT,
-            biography TEXT,
-            popularity REAL,
-            birthday TEXT,
-            deathday TEXT,
-            place_of_birth TEXT,
-            updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
-        )",
-    )?;
-
     pg.execute(
         "INSERT INTO tmdb_person (id, name, biography, popularity, birthday, deathday, place_of_birth, updated_at)
          VALUES ($1,$2,$3,$4,$5,$6,$7, now())
