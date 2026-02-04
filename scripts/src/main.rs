@@ -1,8 +1,9 @@
 use std::env;
 use std::path::Path;
-use std::time::Duration;
+use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{error::Error, thread::sleep};
 
+use chrono::NaiveDate;
 use dotenvy::dotenv;
 use postgres::{Client, NoTls};
 use serde_json::Value;
@@ -23,6 +24,15 @@ mod network;
 mod person;
 mod tv;
 
+pub trait Gateway {
+    fn api_name(&self) -> &str;
+    fn popularity_min(&self) -> f32;
+    fn fetch_dump(&self);
+    fn fetch_details(&mut self, api: &APIClient, id: &i32) -> Result<(), tmdb_client::Error>;
+    fn insert_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>; //, detail: &T);
+    fn insert_bulk_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>; //, details: &Vec<T>);
+}
+
 fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
     let ca_file_path = if cfg!(target_os = "windows") {
         format!(
@@ -35,7 +45,7 @@ fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
             env::var("HOME").unwrap_or_else(|_| ".".to_string())
         )
     };
-    
+
     eprintln!("Using CA file path: {}", ca_file_path);
 
     // Verify the existence of the CA file.
@@ -44,7 +54,7 @@ fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
         eprintln!("CA file {} not found!", ca_file_path);
         return Err(ErrorStack::get()); // Return explicit error.
     }
-    
+
     // Configure OpenSSL with the CA file.
     let mut builder = SslConnector::builder(SslMethod::tls())?;
     builder.set_ca_file(ca_file_path)?;
@@ -88,48 +98,24 @@ fn main() -> Result<(), Box<dyn Error>> {
         // ("production_company", company::fetch_company, 1.0),
     ];
 
+    let gateways = vec![
+        movies::MovieGateway::new(),
+        tv::TvGateway::new(),
+        person::PersonGateway::new(),
+        keyword::KeywordGateway::new(),
+        collection::CollectionGateway::new(),
+        network::NetworkGateway::new(),
+        // company::CompanyGateway::new(),
+    ];
+
     for (export_type, fetch_fn, min_popularity) in exports {
         eprintln!("processing export type: {}", export_type);
 
-        let records_res: Result<Vec<Value>, _> =
-            tmdb_client::files::exports::get_ids(export_type, today);
-        let records = match records_res {
-            Ok(r) => r,
-            Err(e) => {
-                eprintln!("failed to get ids for {}: {}", export_type, e);
-                continue;
-            }
-        };
-
-        eprintln!("{} records for {}", records.len(), export_type);
-        let mut i = 0;
-        let total_count = records.len();
-
-        let filtered = records
-            .iter()
-            .filter(|r| {
-                let pop = r.get("popularity").and_then(|v| v.as_f64());
-                let adult = r.get("adult").and_then(|v| v.as_bool());
-                if let Some(pop_val) = pop
-                    && pop_val < *min_popularity
-                {
-                    return false;
-                }
-                if let Some(adult_val) = adult
-                    && adult_val
-                {
-                    return false;
-                }
-                // return pop.unwrap() >= 1.0;
-                return true;
-            })
-            .collect::<Vec<_>>();
+        let filtered = fetch_dump(export_type, &today, min_popularity);
         let filtered_count = filtered.len();
-        eprintln!(
-            "{} / {} valid object records for {}",
-            filtered_count, total_count, export_type
-        );
 
+        let mut i = 0;
+        let mut start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         for rec in filtered {
             let result = fetch_fn(
                 &api_client,
@@ -152,9 +138,55 @@ fn main() -> Result<(), Box<dyn Error>> {
                     "processed {}/{} records for {}",
                     i, filtered_count, export_type
                 );
+                let end = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
+                eprintln!("Elapsed time: {} seconds", (end - start).as_secs_f64());
+                start = end;
             }
         }
     }
 
     Ok(())
+}
+
+fn fetch_dump(export_type: &str, date: &NaiveDate, min_popularity: &f64) -> Vec<Value> {
+    let records_res: Result<Vec<Value>, _> =
+        tmdb_client::files::exports::get_ids(export_type, *date);
+    let records = match records_res {
+        Ok(r) => r,
+        Err(e) => {
+            eprintln!("failed to get ids for {}: {}", export_type, e);
+            // continue;
+            return vec![];
+        }
+    };
+
+    eprintln!("{} records for {}", records.len(), export_type);
+    let total_count = records.len();
+
+    let filtered = records
+        .iter()
+        .filter(|r| {
+            let pop = r.get("popularity").and_then(|v| v.as_f64());
+            let adult = r.get("adult").and_then(|v| v.as_bool());
+            if let Some(pop_val) = pop
+                && pop_val < *min_popularity
+            {
+                return false;
+            }
+            if let Some(adult_val) = adult
+                && adult_val
+            {
+                return false;
+            }
+            // return pop.unwrap() >= 1.0;
+            return true;
+        })
+        .cloned()
+        .collect::<Vec<_>>();
+    let filtered_count = filtered.len();
+    eprintln!(
+        "{} / {} valid object records for {}",
+        filtered_count, total_count, export_type
+    );
+    return filtered;
 }
