@@ -39,7 +39,7 @@ impl Gateway for CollectionGateway {
     fn insert_details(&mut self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
         let detail = self.collections.pop().ok_or("List of collections is empty")?;
         let id = detail.id.ok_or("Missing collection ID")?;
-        upsert_collection(pg, id, &detail)?;
+        self.upsert_collection(pg, id, &detail)?;
         Ok(())
     }
 
@@ -51,7 +51,7 @@ impl Gateway for CollectionGateway {
         let collection_refs: Vec<&CollectionObject> = self.collections.iter().filter(|collection| collection.id.is_some()).collect();
         crate::batch_insert_with_retry(
             &collection_refs,
-            |batch| try_insert_collection_batch(pg, batch),
+            |batch| self.try_insert_collection_batch(pg, batch),
             |c| c.id,
             "collection",
             0,
@@ -61,8 +61,9 @@ impl Gateway for CollectionGateway {
     }
 
     fn create_table(&self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
-        pg.batch_execute(
-            "CREATE TABLE IF NOT EXISTS tmdb_collection (
+        let table_name = self.table_name();
+        let query = format!(
+            "CREATE TABLE IF NOT EXISTS {} (
                 id INT4 PRIMARY KEY,
                 name TEXT,
                 overview TEXT,
@@ -70,49 +71,56 @@ impl Gateway for CollectionGateway {
 				backdrop_path TEXT,
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )",
-        )?;
+            table_name
+        );
+        pg.batch_execute(&query)?;
         Ok(())
     }
 }
 
-fn try_insert_collection_batch(
-    pg: &mut DbClient,
-    collections: &[&CollectionObject],
-) -> Result<(), Box<dyn Error>> {
-    let mut transaction = pg.transaction()?;
+impl CollectionGateway {
+    fn try_insert_collection_batch(
+        &self,
+        pg: &mut DbClient,
+        collections: &[&CollectionObject],
+    ) -> Result<(), Box<dyn Error>> {
+        let mut transaction = pg.transaction()?;
 
-    let ids: Vec<i32> = collections.iter().filter_map(|c| c.id).collect();
-    let names: Vec<Option<&str>> = collections.iter().map(|c| c.name.as_deref()).collect();
-    let overviews: Vec<Option<&str>> = collections.iter().map(|c| c.overview.as_deref()).collect();
-    let poster_paths: Vec<Option<&str>> = collections
-        .iter()
-        .map(|c| c.poster_path.as_deref())
-        .collect();
-    let backdrop_paths: Vec<Option<&str>> = collections
-        .iter()
-        .map(|c| c.backdrop_path.as_deref())
-        .collect();
+        let ids: Vec<i32> = collections.iter().filter_map(|c| c.id).collect();
+        let names: Vec<Option<&str>> = collections.iter().map(|c| c.name.as_deref()).collect();
+        let overviews: Vec<Option<&str>> = collections.iter().map(|c| c.overview.as_deref()).collect();
+        let poster_paths: Vec<Option<&str>> = collections
+            .iter()
+            .map(|c| c.poster_path.as_deref())
+            .collect();
+        let backdrop_paths: Vec<Option<&str>> = collections
+            .iter()
+            .map(|c| c.backdrop_path.as_deref())
+            .collect();
 
-    transaction.execute(
-        "INSERT INTO tmdb_collection (id, name, overview, poster_path, backdrop_path)
-         SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::TEXT[], $5::TEXT[])
-         AS t(id, name, overview, poster_path, backdrop_path)
-         ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, overview=EXCLUDED.overview, poster_path=EXCLUDED.poster_path, backdrop_path=EXCLUDED.backdrop_path, updated_at=now()",
-        &[&ids, &names, &overviews, &poster_paths, &backdrop_paths],
-    )?;
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, overview, poster_path, backdrop_path)
+             SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::TEXT[], $5::TEXT[])
+             AS t(id, name, overview, poster_path, backdrop_path)
+             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, overview=EXCLUDED.overview, poster_path=EXCLUDED.poster_path, backdrop_path=EXCLUDED.backdrop_path, updated_at=now()",
+            table_name
+        );
 
-    transaction.commit()?;
-    Ok(())
-}
+        transaction.execute(&query, &[&ids, &names, &overviews, &poster_paths, &backdrop_paths])?;
 
-pub fn upsert_collection(pg: &mut DbClient, id: i32, v: &CollectionObject) -> Result<(), Box<dyn Error>> {
-    pg.execute(
-        "INSERT INTO tmdb_collection (id, name, overview, poster_path, backdrop_path, updated_at) VALUES ($1,$2,$3,$4,$5, now())
-         ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, overview=EXCLUDED.overview, poster_path=EXCLUDED.poster_path, backdrop_path=EXCLUDED.backdrop_path, updated_at=EXCLUDED.updated_at",
-        &[&id, &v.name, &v.overview, &v.poster_path, &v.backdrop_path],
-    )?;
-	// v.backdrop_path
-	// v.poster_path
-	// v.parts.iter().for_each(|part| {
-    Ok(())
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn upsert_collection(&self, pg: &mut DbClient, id: i32, v: &CollectionObject) -> Result<(), Box<dyn Error>> {
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, overview, poster_path, backdrop_path, updated_at) VALUES ($1,$2,$3,$4,$5, now())
+             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, overview=EXCLUDED.overview, poster_path=EXCLUDED.poster_path, backdrop_path=EXCLUDED.backdrop_path, updated_at=EXCLUDED.updated_at",
+            table_name
+        );
+        pg.execute(&query, &[&id, &v.name, &v.overview, &v.poster_path, &v.backdrop_path])?;
+        Ok(())
+    }
 }

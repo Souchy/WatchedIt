@@ -39,7 +39,7 @@ impl Gateway for NetworkGateway {
     fn insert_details(&mut self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
         let detail = self.networks.pop().ok_or("List of networks is empty")?;
         let id = detail.id.ok_or("Missing network ID")?;
-        upsert_network(pg, id, &detail)?;
+        self.upsert_network(pg, id, &detail)?;
         Ok(())
     }
 
@@ -51,7 +51,7 @@ impl Gateway for NetworkGateway {
         let network_refs: Vec<&Network> = self.networks.iter().filter(|network| network.id.is_some()).collect();
         crate::batch_insert_with_retry(
             &network_refs,
-            |batch| try_insert_network_batch(pg, batch),
+            |batch| self.try_insert_network_batch(pg, batch),
             |n| n.id,
             "network",
             0,
@@ -61,53 +61,64 @@ impl Gateway for NetworkGateway {
     }
 
     fn create_table(&self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
-        pg.batch_execute(
-            "CREATE TABLE IF NOT EXISTS tmdb_network (
+        let table_name = self.table_name();
+        let query = format!(
+            "CREATE TABLE IF NOT EXISTS {} (
 				id INT4 PRIMARY KEY,
 				name TEXT,
 				logopath TEXT,
 				origin_country TEXT,
 				updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
 			)",
-        )?;
+            table_name
+        );
+        pg.batch_execute(&query)?;
         Ok(())
     }
 }
 
-fn try_insert_network_batch(
-    pg: &mut DbClient,
-    networks: &[&Network],
-) -> Result<(), Box<dyn Error>> {
-    let mut transaction = pg.transaction()?;
+impl NetworkGateway {
+    fn try_insert_network_batch(
+        &self,
+        pg: &mut DbClient,
+        networks: &[&Network],
+    ) -> Result<(), Box<dyn Error>> {
+        let mut transaction = pg.transaction()?;
 
-    let ids: Vec<i32> = networks.iter().filter_map(|n| n.id).collect();
-    let names: Vec<Option<&str>> = networks.iter().map(|n| n.name.as_deref()).collect();
-    let logo_paths: Vec<Option<&str>> = networks
-        .iter()
-        .map(|n| n.logo_path.as_deref())
-        .collect();
-    let origin_countries: Vec<Option<&str>> = networks
-        .iter()
-        .map(|n| n.origin_country.as_deref())
-        .collect();
+        let ids: Vec<i32> = networks.iter().filter_map(|n| n.id).collect();
+        let names: Vec<Option<&str>> = networks.iter().map(|n| n.name.as_deref()).collect();
+        let logo_paths: Vec<Option<&str>> = networks
+            .iter()
+            .map(|n| n.logo_path.as_deref())
+            .collect();
+        let origin_countries: Vec<Option<&str>> = networks
+            .iter()
+            .map(|n| n.origin_country.as_deref())
+            .collect();
 
-    transaction.execute(
-        "INSERT INTO tmdb_network (id, name, logopath, origin_country)
-         SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::TEXT[])
-         AS t(id, name, logopath, origin_country)
-         ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, logopath=EXCLUDED.logopath, origin_country=EXCLUDED.origin_country, updated_at=now()",
-        &[&ids, &names, &logo_paths, &origin_countries],
-    )?;
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, logopath, origin_country)
+             SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::TEXT[])
+             AS t(id, name, logopath, origin_country)
+             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, logopath=EXCLUDED.logopath, origin_country=EXCLUDED.origin_country, updated_at=now()",
+            table_name
+        );
 
-    transaction.commit()?;
-    Ok(())
-}
+        transaction.execute(&query, &[&ids, &names, &logo_paths, &origin_countries])?;
 
-pub fn upsert_network(pg: &mut DbClient, id: i32, v: &Network) -> Result<(), Box<dyn Error>> {
-    pg.execute(
-		"INSERT INTO tmdb_network (id, name, logopath, origin_country, updated_at) VALUES ($1,$2,$3,$4, now())
-		 ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, logopath=EXCLUDED.logopath, origin_country=EXCLUDED.origin_country, updated_at=EXCLUDED.updated_at",
-		&[&id, &v.name, &v.logo_path, &v.origin_country],
-	)?;
-    Ok(())
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn upsert_network(&self, pg: &mut DbClient, id: i32, v: &Network) -> Result<(), Box<dyn Error>> {
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, logopath, origin_country, updated_at) VALUES ($1,$2,$3,$4, now())
+			 ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, logopath=EXCLUDED.logopath, origin_country=EXCLUDED.origin_country, updated_at=EXCLUDED.updated_at",
+            table_name
+        );
+        pg.execute(&query, &[&id, &v.name, &v.logo_path, &v.origin_country])?;
+        Ok(())
+    }
 }

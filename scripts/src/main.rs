@@ -3,7 +3,7 @@ use std::path::Path;
 use std::time::{Duration, SystemTime, UNIX_EPOCH};
 use std::{error::Error, thread::sleep};
 
-use chrono::NaiveDate;
+use chrono::{Datelike, NaiveDate};
 use dotenvy::dotenv;
 use postgres::Client;
 use serde_json::Value;
@@ -91,6 +91,9 @@ where
 
 pub trait Gateway {
     fn api_name(&self) -> &str;
+    fn table_name(&self) -> String {
+        format!("tmdb_{}", self.api_name())
+    }
     fn popularity_min(&self) -> f32;
     fn batch_size(&self) -> usize;
     fn fetch_dump(&self);
@@ -98,6 +101,32 @@ pub trait Gateway {
     fn insert_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
     fn insert_bulk_details(&mut self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
     fn create_table(&self, pg: &mut Client) -> Result<(), Box<dyn Error>>;
+    
+    fn get_ids_to_process(&self, pg: &mut Client, candidate_ids: &[i32], days_old: i32, day_partition: i32) -> Result<std::collections::HashSet<i32>, Box<dyn Error>> {
+        let table_name = self.table_name();
+        let query = format!(
+            "SELECT c.id 
+             FROM unnest($1::int4[]) AS c(id)
+             LEFT JOIN {} m ON m.id = c.id
+             WHERE m.id IS NULL
+                OR (m.updated_at < NOW() - $2::integer * INTERVAL '1 day' AND m.id % 7 = $3)",
+            table_name
+        );
+        
+        let mut ids = std::collections::HashSet::new();
+        
+        // Process in chunks to avoid query parameter limits
+        const CHUNK_SIZE: usize = 10_000;
+        for chunk in candidate_ids.chunks(CHUNK_SIZE) {
+            let rows = pg.query(&query, &[&chunk, &days_old, &day_partition])?;
+            for row in rows {
+                let id: i32 = row.get(0);
+                ids.insert(id);
+            }
+        }
+        
+        Ok(ids)
+    }
 }
 
 fn ssl_config() -> Result<MakeTlsConnector, ErrorStack> {
@@ -186,7 +215,29 @@ fn new_code(
 
         // Create table once at the start
         gateway.create_table(client)?;
-
+        
+        // Extract all candidate IDs from filtered records
+        let candidate_ids: Vec<i32> = filtered
+            .iter()
+            .filter_map(|rec| rec.get("id").and_then(|v| v.as_i64()).map(|id| id as i32))
+            .collect();
+        
+        // Get IDs to process: either new (not in DB) or stale (old + matching today's partition)
+        let day_of_week = today.weekday().num_days_from_monday() as i32; // 0-6
+        let ids_to_process = gateway.get_ids_to_process(client, &candidate_ids, 7, day_of_week)?;
+        
+        // Filter the records to only those we need to process
+        let records_to_process: Vec<_> = filtered
+            .into_iter()
+            .filter(|rec| {
+                let id = rec.get("id").and_then(|v| v.as_i64()).map(|id| id as i32);
+                id.map_or(false, |id| ids_to_process.contains(&id))
+            })
+            .collect();
+        
+        eprintln!("Processing {}/{} records (new or stale for day {})", 
+            records_to_process.len(), filtered_count, day_of_week);
+        
         let mut i = 0;
         let mut batch_start = SystemTime::now().duration_since(UNIX_EPOCH).unwrap();
         let mut rate_limit_batch_start = SystemTime::now();
@@ -194,7 +245,7 @@ fn new_code(
         let rate_limit_window = Duration::from_secs(1);
         let mut batch_slept_time = 0;
 
-        for rec in filtered {
+        for rec in records_to_process {
             // Make the API request
             let result = gateway.fetch_details(
                 &api_client,

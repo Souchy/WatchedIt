@@ -39,7 +39,7 @@ impl Gateway for PersonGateway {
     fn insert_details(&mut self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
         let detail = self.people.pop().ok_or("List of people is empty")?;
         let id = detail.id.ok_or("Missing person ID")?;
-        upsert_person(pg, id, &detail)?;
+        self.upsert_person(pg, id, &detail)?;
         Ok(())
     }
 
@@ -51,7 +51,7 @@ impl Gateway for PersonGateway {
         let person_refs: Vec<&PersonDetails> = self.people.iter().filter(|person| person.id.is_some()).collect();
         crate::batch_insert_with_retry(
             &person_refs,
-            |batch| try_insert_person_batch(pg, batch),
+            |batch| self.try_insert_person_batch(pg, batch),
             |p| p.id,
             "person",
             0,
@@ -61,8 +61,9 @@ impl Gateway for PersonGateway {
     }
 
     fn create_table(&self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
-        pg.batch_execute(
-            "CREATE TABLE IF NOT EXISTS tmdb_person (
+        let table_name = self.table_name();
+        let query = format!(
+            "CREATE TABLE IF NOT EXISTS {} (
                 id INT4 PRIMARY KEY,
                 name TEXT,
                 biography TEXT,
@@ -72,56 +73,69 @@ impl Gateway for PersonGateway {
                 place_of_birth TEXT,
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )",
-        )?;
+            table_name
+        );
+        pg.batch_execute(&query)?;
         Ok(())
     }
 }
 
-fn try_insert_person_batch(
-    pg: &mut DbClient,
-    people: &[&PersonDetails],
-) -> Result<(), Box<dyn Error>> {
-    let mut transaction = pg.transaction()?;
+impl PersonGateway {
+    fn try_insert_person_batch(
+        &self,
+        pg: &mut DbClient,
+        people: &[&PersonDetails],
+    ) -> Result<(), Box<dyn Error>> {
+        let mut transaction = pg.transaction()?;
 
-    let ids: Vec<i32> = people.iter().filter_map(|p| p.id).collect();
-    let names: Vec<Option<&str>> = people.iter().map(|p| p.name.as_deref()).collect();
-    let biographies: Vec<Option<&str>> = people.iter().map(|p| p.biography.as_deref()).collect();
-    let popularities: Vec<Option<f32>> = people.iter().map(|p| p.popularity).collect();
-    let birthdays: Vec<Option<&str>> = people.iter().map(|p| p.birthday.as_deref()).collect();
-    let deathdays: Vec<Option<&str>> = people.iter().map(|p| p.deathday.as_deref()).collect();
-    let places_of_birth: Vec<Option<&str>> = people
-        .iter()
-        .map(|p| p.place_of_birth.as_deref())
-        .collect();
+        let ids: Vec<i32> = people.iter().filter_map(|p| p.id).collect();
+        let names: Vec<Option<&str>> = people.iter().map(|p| p.name.as_deref()).collect();
+        let biographies: Vec<Option<&str>> = people.iter().map(|p| p.biography.as_deref()).collect();
+        let popularities: Vec<Option<f32>> = people.iter().map(|p| p.popularity).collect();
+        let birthdays: Vec<Option<&str>> = people.iter().map(|p| p.birthday.as_deref()).collect();
+        let deathdays: Vec<Option<&str>> = people.iter().map(|p| p.deathday.as_deref()).collect();
+        let places_of_birth: Vec<Option<&str>> = people
+            .iter()
+            .map(|p| p.place_of_birth.as_deref())
+            .collect();
 
-    transaction.execute(
-        "INSERT INTO tmdb_person (id, name, biography, popularity, birthday, deathday, place_of_birth)
-         SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::REAL[], $5::TEXT[], $6::TEXT[], $7::TEXT[])
-         AS t(id, name, biography, popularity, birthday, deathday, place_of_birth)
-         ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, biography=EXCLUDED.biography, popularity=EXCLUDED.popularity,
-         birthday=EXCLUDED.birthday, deathday=EXCLUDED.deathday, place_of_birth=EXCLUDED.place_of_birth, updated_at=now()",
-        &[
-            &ids,
-            &names,
-            &biographies,
-            &popularities,
-            &birthdays,
-            &deathdays,
-            &places_of_birth,
-        ],
-    )?;
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, biography, popularity, birthday, deathday, place_of_birth)
+             SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::REAL[], $5::TEXT[], $6::TEXT[], $7::TEXT[])
+             AS t(id, name, biography, popularity, birthday, deathday, place_of_birth)
+             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, biography=EXCLUDED.biography, popularity=EXCLUDED.popularity,
+             birthday=EXCLUDED.birthday, deathday=EXCLUDED.deathday, place_of_birth=EXCLUDED.place_of_birth, updated_at=now()",
+            table_name
+        );
 
-    transaction.commit()?;
-    Ok(())
-}
+        transaction.execute(
+            &query,
+            &[
+                &ids,
+                &names,
+                &biographies,
+                &popularities,
+                &birthdays,
+                &deathdays,
+                &places_of_birth,
+            ],
+        )?;
 
-pub fn upsert_person(pg: &mut DbClient, id: i32, v: &PersonDetails) -> Result<(), Box<dyn Error>> {
-    pg.execute(
-        "INSERT INTO tmdb_person (id, name, biography, popularity, birthday, deathday, place_of_birth, updated_at)
-         VALUES ($1,$2,$3,$4,$5,$6,$7, now())
-         ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, biography=EXCLUDED.biography, popularity=EXCLUDED.popularity,
-         birthday=EXCLUDED.birthday, deathday=EXCLUDED.deathday, place_of_birth=EXCLUDED.place_of_birth, updated_at=EXCLUDED.updated_at",
-        &[&id, &v.name, &v.biography, &v.popularity, &v.birthday, &v.deathday, &v.place_of_birth],
-    )?;
-    Ok(())
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn upsert_person(&self, pg: &mut DbClient, id: i32, v: &PersonDetails) -> Result<(), Box<dyn Error>> {
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, biography, popularity, birthday, deathday, place_of_birth, updated_at)
+             VALUES ($1,$2,$3,$4,$5,$6,$7, now())
+             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, biography=EXCLUDED.biography, popularity=EXCLUDED.popularity,
+             birthday=EXCLUDED.birthday, deathday=EXCLUDED.deathday, place_of_birth=EXCLUDED.place_of_birth, updated_at=EXCLUDED.updated_at",
+            table_name
+        );
+        pg.execute(&query, &[&id, &v.name, &v.biography, &v.popularity, &v.birthday, &v.deathday, &v.place_of_birth])?;
+        Ok(())
+    }
 }

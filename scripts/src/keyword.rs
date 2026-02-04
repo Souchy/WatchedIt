@@ -39,7 +39,7 @@ impl Gateway for KeywordGateway {
     fn insert_details(&mut self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
         let detail = self.keywords.pop().ok_or("List of keywords is empty")?;
         let id = detail.id.ok_or("Missing keyword ID")?;
-        upsert_keyword(pg, id, &detail)?;
+        self.upsert_keyword(pg, id, &detail)?;
         Ok(())
     }
 
@@ -51,7 +51,7 @@ impl Gateway for KeywordGateway {
         let keyword_refs: Vec<&Keyword> = self.keywords.iter().filter(|keyword| keyword.id.is_some()).collect();
         crate::batch_insert_with_retry(
             &keyword_refs,
-            |batch| try_insert_keyword_batch(pg, batch),
+            |batch| self.try_insert_keyword_batch(pg, batch),
             |k| k.id,
             "keyword",
             0,
@@ -61,40 +61,51 @@ impl Gateway for KeywordGateway {
     }
 
     fn create_table(&self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
-        pg.batch_execute(
-            "CREATE TABLE IF NOT EXISTS tmdb_keyword (
+        let table_name = self.table_name();
+        let query = format!(
+            "CREATE TABLE IF NOT EXISTS {} (
                 id INT4 PRIMARY KEY,
                 name TEXT,
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )",
-        )?;
+            table_name
+        );
+        pg.batch_execute(&query)?;
         Ok(())
     }
 }
 
-fn try_insert_keyword_batch(
-    pg: &mut DbClient,
-    keywords: &[&Keyword],
-) -> Result<(), Box<dyn Error>> {
-    let mut transaction = pg.transaction()?;
+impl KeywordGateway {
+    fn try_insert_keyword_batch(
+        &self,
+        pg: &mut DbClient,
+        keywords: &[&Keyword],
+    ) -> Result<(), Box<dyn Error>> {
+        let mut transaction = pg.transaction()?;
 
-    let ids: Vec<i32> = keywords.iter().filter_map(|k| k.id).collect();
-    let names: Vec<Option<&str>> = keywords.iter().map(|k| k.name.as_deref()).collect();
+        let ids: Vec<i32> = keywords.iter().filter_map(|k| k.id).collect();
+        let names: Vec<Option<&str>> = keywords.iter().map(|k| k.name.as_deref()).collect();
 
-    transaction.execute(
-        "INSERT INTO tmdb_keyword (id, name) SELECT * FROM UNNEST($1::INT4[], $2::TEXT[]) AS t(id, name)
-         ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, updated_at=now()",
-        &[&ids, &names],
-    )?;
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name) SELECT * FROM UNNEST($1::INT4[], $2::TEXT[]) AS t(id, name)
+             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, updated_at=now()",
+            table_name
+        );
 
-    transaction.commit()?;
-    Ok(())
-}
+        transaction.execute(&query, &[&ids, &names])?;
 
-pub fn upsert_keyword(pg: &mut DbClient, id: i32, v: &Keyword) -> Result<(), Box<dyn Error>> {
-    pg.execute(
-        "INSERT INTO tmdb_keyword (id, name, updated_at) VALUES ($1,$2, now()) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, updated_at=EXCLUDED.updated_at",
-        &[&id, &v.name],
-    )?;
-    Ok(())
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn upsert_keyword(&self, pg: &mut DbClient, id: i32, v: &Keyword) -> Result<(), Box<dyn Error>> {
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, updated_at) VALUES ($1,$2, now()) ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, updated_at=EXCLUDED.updated_at",
+            table_name
+        );
+        pg.execute(&query, &[&id, &v.name])?;
+        Ok(())
+    }
 }

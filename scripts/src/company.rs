@@ -39,7 +39,7 @@ impl Gateway for CompanyGateway {
     fn insert_details(&mut self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
         let detail = self.companies.pop().ok_or("List of companies is empty")?;
         let id = detail.id.ok_or("Missing company ID")?;
-        upsert_company(pg, id, &detail)?;
+        self.upsert_company(pg, id, &detail)?;
         Ok(())
     }
 
@@ -51,7 +51,7 @@ impl Gateway for CompanyGateway {
         let company_refs: Vec<&CompanyDetails> = self.companies.iter().filter(|company| company.id.is_some()).collect();
         crate::batch_insert_with_retry(
             &company_refs,
-            |batch| try_insert_company_batch(pg, batch),
+            |batch| self.try_insert_company_batch(pg, batch),
             |c| c.id,
             "company",
             0,
@@ -61,58 +61,61 @@ impl Gateway for CompanyGateway {
     }
 
     fn create_table(&self, pg: &mut DbClient) -> Result<(), Box<dyn Error>> {
-        pg.batch_execute(
-            "CREATE TABLE IF NOT EXISTS tmdb_company (
+        let table_name = self.table_name();
+        let query = format!(
+            "CREATE TABLE IF NOT EXISTS {} (
                 id INT4 PRIMARY KEY,
                 name TEXT,
                 homepage TEXT,
                 origin_country TEXT,
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )",
-        )?;
+            table_name
+        );
+        pg.batch_execute(&query)?;
         Ok(())
     }
 }
 
-fn try_insert_company_batch(
-    pg: &mut DbClient,
-    companies: &[&CompanyDetails],
-) -> Result<(), Box<dyn Error>> {
-    let mut transaction = pg.transaction()?;
+impl CompanyGateway {
+    fn try_insert_company_batch(
+        &self,
+        pg: &mut DbClient,
+        companies: &[&CompanyDetails],
+    ) -> Result<(), Box<dyn Error>> {
+        let mut transaction = pg.transaction()?;
 
-    let ids: Vec<i32> = companies.iter().filter_map(|c| c.id).collect();
-    let names: Vec<Option<&str>> = companies.iter().map(|c| c.name.as_deref()).collect();
-    let homepages: Vec<Option<&str>> = companies.iter().map(|c| c.homepage.as_deref()).collect();
-    let origin_countries: Vec<Option<&str>> = companies
-        .iter()
-        .map(|c| c.origin_country.as_deref())
-        .collect();
+        let ids: Vec<i32> = companies.iter().filter_map(|c| c.id).collect();
+        let names: Vec<Option<&str>> = companies.iter().map(|c| c.name.as_deref()).collect();
+        let homepages: Vec<Option<&str>> = companies.iter().map(|c| c.homepage.as_deref()).collect();
+        let origin_countries: Vec<Option<&str>> = companies
+            .iter()
+            .map(|c| c.origin_country.as_deref())
+            .collect();
 
-    transaction.execute(
-        "INSERT INTO tmdb_company (id, name, homepage, origin_country)
-         SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::TEXT[])
-         AS t(id, name, homepage, origin_country)
-         ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, homepage=EXCLUDED.homepage, origin_country=EXCLUDED.origin_country, updated_at=now()",
-        &[&ids, &names, &homepages, &origin_countries],
-    )?;
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, homepage, origin_country)
+             SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::TEXT[])
+             AS t(id, name, homepage, origin_country)
+             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, homepage=EXCLUDED.homepage, origin_country=EXCLUDED.origin_country, updated_at=now()",
+            table_name
+        );
 
-    transaction.commit()?;
-    Ok(())
-}
+        transaction.execute(&query, &[&ids, &names, &homepages, &origin_countries])?;
 
-pub fn upsert_company(pg: &mut DbClient, id: i32, v: &CompanyDetails) -> Result<(), Box<dyn Error>> {
-    pg.execute(
-        "INSERT INTO tmdb_company (id, name, homepage, origin_country, updated_at) VALUES ($1,$2,$3,$4, now())
-         ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, homepage=EXCLUDED.homepage, origin_country=EXCLUDED.origin_country, updated_at=EXCLUDED.updated_at",
-        &[&id, &v.name, &v.homepage, &v.origin_country],
-		// v.description
-		// v.headquarters
-		// v.homepage
-		// v.id
-		// v.logo_path
-		// v.name
-		// v.origin_country
-		// v.parent_company
-    )?;
-    Ok(())
+        transaction.commit()?;
+        Ok(())
+    }
+
+    fn upsert_company(&self, pg: &mut DbClient, id: i32, v: &CompanyDetails) -> Result<(), Box<dyn Error>> {
+        let table_name = self.table_name();
+        let query = format!(
+            "INSERT INTO {} (id, name, homepage, origin_country, updated_at) VALUES ($1,$2,$3,$4, now())
+             ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, homepage=EXCLUDED.homepage, origin_country=EXCLUDED.origin_country, updated_at=EXCLUDED.updated_at",
+            table_name
+        );
+        pg.execute(&query, &[&id, &v.name, &v.homepage, &v.origin_country])?;
+        Ok(())
+    }
 }
