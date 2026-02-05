@@ -1,3 +1,3 @@
 fn main() {
-    println!("Hello, world!");
+    println!("Use the binaries in src/bin for Lambda handlers.");
 }
