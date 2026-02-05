@@ -87,12 +87,13 @@ impl Gateway for TvGateway {
     fn get_changes(
         &self,
         api: &APIClient,
-        since: NaiveDate,
+        from: NaiveDate,
+        to: NaiveDate,
         page: i32,
     ) -> Result<tmdb_client::models::ChangesPaginated, tmdb_client::Error> {
         let changes = api.changes_api().get_tv_changes_paginated(
-            Some(since.format("%Y-%m-%d").to_string()),
-            None,
+            Some(from.format("%Y-%m-%d").to_string()),
+            Some(to.format("%Y-%m-%d").to_string()),
             Some(page),
         )?;
         Ok(changes)
