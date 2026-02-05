@@ -1,0 +1,103 @@
+
+
+
+
+
+
+
+
+
+
+
+run
+	last_run_start = db.get("last_run_start") || default to epoch
+	last_run_end = db.get("last_run_end") || default to epoch
+	last_successful_run_start = db.get("last_successful_run_start") || default to epoch
+	
+	this_start = now;
+	DB.update_last_run_start(this_start)
+
+	dates = [last_run_start, last_run_end, last_successful_run_start]
+	oldest_date = dates.sort.first
+	youngest_date = dates.sort.last
+
+
+	dump_ids = dump where popularity > threshold && adult == false
+	new_ids = dump_ids not in DB
+
+
+	// 'time_since_last_start' should be 1 day. (or less if manual run). 
+	// But if it's larger than 8 days, something very wrong happened (like a crash or downtime).
+	// In that case, we fetch stale IDs instead of changed IDs to ensure we don't miss updates.
+	
+	if has_changed_api && time_since_last_start < 8 days {
+		period_a_ids = fetch_changes_tmdb(from: oldest_date, to: youngest_date)
+			.filter(id in dump_ids)
+			.filter(db.row.updated_at older than youngest_date)
+
+		period_b_ids = fetch_changes_tmdb(from: youngest_date, this_start)
+			.filter(id in dump_ids)
+			.filter(db.row.updated_at older than this_start)
+
+		ids = new_ids + period_a_ids + period_b_ids
+	} else {
+		stale_ids = dump_ids where id in DB && last_updated < (now - 7 days)
+		ids = new_ids + stale_ids
+	}
+
+	process(ids)
+
+	DB.update_last_run_complete(now)
+	DB.update_last_successful_run_start(this_start)
+
+
+
+
+/*
+
+1. Run back to back:
+	a. Don't run all changes twice: use last run date from DB.
+
+2. Changed since last day too big for one run:
+	a. If last run date is more than 8 days ago, use stale IDs instead of changed IDs.
+
+Basically the problem is updating the last_run_date if the changed_ids take too long to process.
+If we update the date at the end and it timeouts, 
+	then we never update the date, 
+	then the next day we fetch the same changes + 1 more day 
+	and we timeout again and again.
+If we update the date in the middle or at the start and it timeouts, 
+	then the next day we only take the new changes 
+	and some of the previous day changes will never get processed.
+
+
+run day 1, 2, 3
+changed = 1, 1, 1
+stale = 0, 0, 0
+
+
+Day 1
+	start, end
+	no last run date (epoch)
+	=>
+	process all 160 000 ids from dump (all new)
+Day 2
+	start, timeout
+	last_successful_start = day1.start
+	last_start = day1.start
+	last_end = day1.end
+	fetch (oldest - most recent) (day1.start - day1.end)
+		// process: updated older than day1.start (no, could miss something that updated AND changed between day1.start-day1.end)
+		process: updated older than day1.end (=whole period)
+	fetch (most recent - today) (day1.end - day2.start)
+		process: updated older than day2.start (=whole period)
+Day 3
+	start, end
+	last_successful_start = day1.start
+	last_start = day2.start
+	last_end = day1.end
+	fetch (oldest - most recent) (day1.start - day2.start)
+		process: updated older than day2.start (overlap period, so skips stuff that has already been updated on day2)
+	fetch (most recent - today) (day2.start - day3.start)
+		process: updated older than day3.start (=whole period)
+*/

@@ -1,0 +1,26 @@
+[package]
+name = "lambdas"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+tokio = { version = "1.49.0", features = ["full"] }
+vercel_runtime = { version = "2" }
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+dotenvy = "0.15.7"
+sqlx = { version = "0.8.6", features = ["runtime-tokio-rustls", "postgres", "json", "macros"] }
+http-body-util = "0.1"
+
+[[bin]]
+name = "get_bulk_movies"
+path = "api/get_bulk_movies.rs"
+
+[[bin]]
+name = "get_bulk_tv_series"
+path = "api/get_bulk_tv_series.rs"
+
+[profile.release]
+codegen-units = 1
+lto = "fat"
+opt-level = 3
