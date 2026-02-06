@@ -12,7 +12,7 @@ struct GetBulkMoviesRequest {
 struct MovieItem {
     id: i32,
     title: String,
-    genres: Option<String>,
+    genres: Json<serde_json::Value>,
     release_date: Option<String>,
     overview: Option<String>,
 }

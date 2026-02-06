@@ -11,8 +11,8 @@ struct GetBulkTvSeriesRequest {
 #[derive(Debug, Serialize, FromRow)]
 struct TvSeriesItem {
     id: i32,
-    title: String,
-    genres: Option<String>,
+    name: String,
+    genres: Json<serde_json::Value>,
     first_air_date: Option<String>,
     overview: Option<String>,
 }
@@ -33,7 +33,7 @@ async fn handler(request: Request) -> Result<Response<String>, Error> {
         r#"
         SELECT
             id,
-            title,
+            name,
             genres,
             first_air_date::STRING AS first_air_date,
             overview
