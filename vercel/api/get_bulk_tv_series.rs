@@ -37,7 +37,7 @@ async fn handler(request: Request) -> Result<Response<String>, Error> {
             genres,
             first_air_date::STRING AS first_air_date,
             overview
-        FROM tv_series
+        FROM tmdb_tv_series
         WHERE id = ANY($1)
         "#,
     )
