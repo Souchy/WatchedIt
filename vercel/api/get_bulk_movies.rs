@@ -15,6 +15,7 @@ struct MovieItem {
     genres: Json<serde_json::Value>,
     release_date: Option<String>,
     overview: Option<String>,
+    poster_path: Option<String>,
 }
 
 async fn handler(request: Request) -> Result<Response<String>, Error> {
@@ -47,7 +48,8 @@ async fn handler(request: Request) -> Result<Response<String>, Error> {
             title,
             genres,
             release_date::STRING AS release_date,
-            overview
+            overview,
+            poster_path
         FROM tmdb_movie
         WHERE id = ANY($1)
         "#,

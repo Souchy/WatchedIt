@@ -15,6 +15,7 @@ struct TvSeriesItem {
     genres: Json<serde_json::Value>,
     first_air_date: Option<String>,
     overview: Option<String>,
+    poster_path: Option<String>,
 }
 
 async fn handler(request: Request) -> Result<Response<String>, Error> {
@@ -47,7 +48,8 @@ async fn handler(request: Request) -> Result<Response<String>, Error> {
             name,
             genres,
             first_air_date::STRING AS first_air_date,
-            overview
+            overview,
+            poster_path
         FROM tmdb_tv_series
         WHERE id = ANY($1)
         "#,
