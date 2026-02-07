@@ -18,12 +18,23 @@ struct TvSeriesItem {
 }
 
 async fn handler(request: Request) -> Result<Response<String>, Error> {
+    // Handle CORS preflight request
+    if request.method() == "OPTIONS" {
+        return Ok(Response::builder()
+            .status(204)
+            .header("Access-Control-Allow-Origin", "*")
+            .header("Access-Control-Allow-Methods", "POST, OPTIONS")
+            .header("Access-Control-Allow-Headers", "Content-Type")
+            .body(String::new())?);
+    }
+
     let payload: GetBulkTvSeriesRequest = parse_json_body(request).await?;
 
     if payload.ids.is_empty() {
         let response = Response::builder()
             .status(400)
             .header("content-type", "application/json")
+            .header("Access-Control-Allow-Origin", "*")
             .body(serde_json::json!({"error": "ids must not be empty"}).to_string())?;
         return Ok(response);
     }
@@ -49,6 +60,7 @@ async fn handler(request: Request) -> Result<Response<String>, Error> {
     let response = Response::builder()
         .status(200)
         .header("content-type", "application/json")
+        .header("Access-Control-Allow-Origin", "*")
         .body(serde_json::to_string(&series)?)?;
 
     Ok(response)
