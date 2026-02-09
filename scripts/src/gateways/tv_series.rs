@@ -75,6 +75,8 @@ impl Gateway for TvGateway {
                 vote_average REAL,
                 vote_count INT4,
                 homepage TEXT,
+                backdrop_path TEXT,
+                poster_path TEXT,
                 genres JSONB,
                 updated_at TIMESTAMPTZ NOT NULL DEFAULT now()
             )",
@@ -123,6 +125,14 @@ impl TvGateway {
             .iter()
             .map(|v| v.homepage.as_deref())
             .collect();
+        let backdrop_paths: Vec<Option<&str>> = tv_shows
+            .iter()
+            .map(|v| v.backdrop_path.as_deref())
+            .collect();
+        let poster_paths: Vec<Option<&str>> = tv_shows
+            .iter()
+            .map(|v| v.poster_path.as_deref())
+            .collect();
         let genres_jsons: Vec<Json<Vec<_>>> = tv_shows
             .iter()
             .map(|v| Json(v.genres.clone().unwrap_or(vec![])))
@@ -130,9 +140,9 @@ impl TvGateway {
 
         let table_name = self.table_name();
         let query = format!(
-            "INSERT INTO {} (id, name, overview, popularity, first_air_date, number_of_seasons, vote_average, vote_count, homepage, genres)
-             SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::REAL[], $5::TEXT[], $6::INT4[], $7::REAL[], $8::INT4[], $9::TEXT[], $10::JSONB[])
-             AS t(id, name, overview, popularity, first_air_date, number_of_seasons, vote_average, vote_count, homepage, genres)
+            "INSERT INTO {} (id, name, overview, popularity, first_air_date, number_of_seasons, vote_average, vote_count, homepage, backdrop_path, poster_path, genres)
+             SELECT * FROM UNNEST($1::INT4[], $2::TEXT[], $3::TEXT[], $4::REAL[], $5::TEXT[], $6::INT4[], $7::REAL[], $8::INT4[], $9::TEXT[], $10::TEXT[], $11::TEXT[], $12::JSONB[])
+             AS t(id, name, overview, popularity, first_air_date, number_of_seasons, vote_average, vote_count, homepage, backdrop_path, poster_path, genres)
              ON CONFLICT (id) DO UPDATE SET name=EXCLUDED.name, overview=EXCLUDED.overview, popularity=EXCLUDED.popularity,
              first_air_date=EXCLUDED.first_air_date, number_of_seasons=EXCLUDED.number_of_seasons, vote_average=EXCLUDED.vote_average,
              vote_count=EXCLUDED.vote_count, homepage=EXCLUDED.homepage, genres=EXCLUDED.genres, updated_at=now()",
@@ -151,6 +161,8 @@ impl TvGateway {
                 &vote_averages,
                 &vote_counts,
                 &homepages,
+                &backdrop_paths,
+                &poster_paths,
                 &genres_jsons,
             ],
         )?;
