@@ -90,9 +90,9 @@ export class MyListPage {
 	public session!: Session | null;
 	@fromState((state: AppState) => state.mediaUserDataCache)
 	@observable
-	public mediaUserDataCache!: UserDataCache | null;
+	public mediaUserDataCache!: UserDataCache;
 	@fromState((state: AppState) => state.tmdbDataCache)
-	public tmdbData!: TMDBDataCache | null;
+	public tmdbData!: TMDBDataCache;
 
 	// Filtering and Sorting
 	private filter: MyListSearchFilters = new MyListSearchFilters();

@@ -34,4 +34,9 @@ export class TMDBDataCache {
 		return Object.keys(this.tmdbData);
 	}
 
+	public has(tmdbId: number, kind: MediaKind): boolean {
+		const key = `${kind}-${tmdbId}`;
+		return key in this.tmdbData;
+	}
+
 }
