@@ -2,7 +2,7 @@ name: Run Rust script (daily)
 
 on:
   schedule:
-    - cron: "0 12 * * *" # Every day
+    - cron: "0 12 1/2 * *" # Every two days
     # - cron: "0 0 * * 0" # Every Sunday
   workflow_dispatch:
 
